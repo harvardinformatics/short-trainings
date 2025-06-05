@@ -328,7 +328,7 @@ Often, we have an idea in our minds about what we want the graph to look like. F
 
 #### Example plot
 
-![](palmer_penguins.png)
+![](img/palmer_penguins.png)
 
 #### Base plot
 
@@ -558,7 +558,7 @@ g +
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
-![](palmer_penguins.png)
+![](img/palmer_penguins.png)
 
 #### Theme
 
