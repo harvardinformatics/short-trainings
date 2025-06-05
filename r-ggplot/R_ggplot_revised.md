@@ -7,11 +7,7 @@ output:
     keep_md: true
 ---
 
-<style>
-    .md-sidebar--secondary { order: 0; }
-    .md-sidebar--primary { display: none; }
-    /* This hides the Navigation sidebar and moves the TOC sidebar to the left in HTML renders */
-</style>
+
 
 ## R, RStudio, and R Markdown
 
@@ -20,12 +16,20 @@ Hello everyone. Let's get oriented to how today's ggplot workshop is going to ru
 For those who are not familiar with this file format, this is an RMarkdown file, which is a mixture of formatted text and **code blocks**. Code is written and executed in these code blocks, which are delineated by the back tick character (\`). Each code block can have a language specified (in our case we will exclusively use `r`) as well as options specific to that block. Here is an example of an R code block in this R Markdown file:
 
 
-``` r
+```r
 getwd()
 ```
 
-``` r
+```
+## [1] "C:/bin/fasifx/informatics-website/docs/workshops/short-trainings/r-ggplot"
+```
+
+```r
 print("hello world")
+```
+
+```
+## [1] "hello world"
 ```
 
 In the code block above, we can run the code by clicking the green triangle in the upper right.
@@ -45,14 +49,14 @@ We'll guide you in depth in creating a single type of plot (scatter plot) while 
 
 ## Introduction to ggplot
 
-[ggplot](https://ggplot2.tidyverse.org/) is a **package** (library of code with various functions) that is part of the **tidyverse**. It uses a somewhat standardized 'grammar of graphics' ([book](https://id.lib.harvard.edu/alma/990082021020203941/catalog); [paper](https://hollis.harvard.edu/permalink/f/1mdq5o5/TN_cdi_informaworld_taylorfrancis_310_1198_jcgs_2009_07098)) in its syntax to make almost every aspect of a plot customizable. The input to ggplot are **data frames** and **tibbles**, and the best way to organize your data so that it is easily plotted is by ggplot is following the **tidy** principles, which is why it's part of the tidyverse.
+[ggplot :octicons-link-external-24:](https://ggplot2.tidyverse.org/){:target="_blank"} is a **package** (library of code with various functions) that is part of the **tidyverse**. It uses a somewhat standardized 'grammar of graphics' ([book :octicons-link-external-24:](https://id.lib.harvard.edu/alma/990082021020203941/catalog){:target="_blank"}; [paper :octicons-link-external-24:](https://hollis.harvard.edu/permalink/f/1mdq5o5/TN_cdi_informaworld_taylorfrancis_310_1198_jcgs_2009_07098){:target="_blank"}) in its syntax to make almost every aspect of a plot customizable. The input to ggplot are **data frames** and **tibbles**, and the best way to organize your data so that it is easily plotted is by ggplot is following the **tidy** principles, which is why it's part of the tidyverse.
 
 If you haven't already, download and install the tidyverse bundle of packages and load it. ggplot2 is one of the packages bundled with it. We'll also install and load the `palmerpenguins` package, which contains the sample dataset we're working with.
 
 Do so by running this code block (by clicking the green triangle in the upper right, or by placing the cursor in the code block and using *ctrl+enter*/*cmd+enter*.)
 
 
-``` r
+```r
 installed_packages <- rownames(installed.packages())
 
 for (pkg in c("tidyverse", "palmerpenguins")) {
@@ -66,21 +70,21 @@ for (pkg in c("tidyverse", "palmerpenguins")) {
 As noted above, we're going to be working with the `penguins` data set. This is a dataset of mixed data, meaning some variables are categorical and some are numerical, collected about penguins at a research station. It is organized so that each row is a single penguin and each column are the measurements taken of the penguins. You can view the data set by running the following code block:
 
 
-``` r
+```r
 glimpse(penguins)
 ```
 
 ```
 ## Rows: 344
 ## Columns: 8
-## $ species           <fct> Adelie, Adelie, Adelie, Adelie, Adelie, Adelie, Adel…
-## $ island            <fct> Torgersen, Torgersen, Torgersen, Torgersen, Torgerse…
-## $ bill_length_mm    <dbl> 39.1, 39.5, 40.3, NA, 36.7, 39.3, 38.9, 39.2, 34.1, …
-## $ bill_depth_mm     <dbl> 18.7, 17.4, 18.0, NA, 19.3, 20.6, 17.8, 19.6, 18.1, …
-## $ flipper_length_mm <int> 181, 186, 195, NA, 193, 190, 181, 195, 193, 190, 186…
-## $ body_mass_g       <int> 3750, 3800, 3250, NA, 3450, 3650, 3625, 4675, 3475, …
-## $ sex               <fct> male, female, female, NA, female, male, female, male…
-## $ year              <int> 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007…
+## $ species           <fct> Adelie, Adelie, Adelie, Adelie, Adelie, Adelie, Adel~
+## $ island            <fct> Torgersen, Torgersen, Torgersen, Torgersen, Torgerse~
+## $ bill_length_mm    <dbl> 39.1, 39.5, 40.3, NA, 36.7, 39.3, 38.9, 39.2, 34.1, ~
+## $ bill_depth_mm     <dbl> 18.7, 17.4, 18.0, NA, 19.3, 20.6, 17.8, 19.6, 18.1, ~
+## $ flipper_length_mm <int> 181, 186, 195, NA, 193, 190, 181, 195, 193, 190, 186~
+## $ body_mass_g       <int> 3750, 3800, 3250, NA, 3450, 3650, 3625, 4675, 3475, ~
+## $ sex               <fct> male, female, female, NA, female, male, female, male~
+## $ year              <int> 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007~
 ```
 
 ## Building a basic plot: aesthetics and layers
@@ -90,7 +94,7 @@ What goes into constructing a plot? Let's begin by going over two important conc
 A ggplot starts by defining a graphical object (or **grob**) with the `ggplot()` function and telling it the source of the data for the plot, like this:
 
 
-``` r
+```r
 ggplot(penguins)
 ```
 
@@ -101,7 +105,7 @@ However, in the above example, only a grey box is displayed. This is because, wh
 For example, if I wanted to plot two columns from the `penguins` dataset called `bill_length_mm` and `bill_depth_mm` that I wanted to use in my plot, I would do the following:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = bill_depth_mm, y = bill_length_mm))
 ```
 
@@ -111,7 +115,7 @@ Now, it looks like we have added axes on our white box, but nothing else. At thi
 
 We need to tell ggplot how to interpret the aesthetics as a graphical representation, i.e. do we want points, lines, bars, etc. We do this by adding **layers** onto the plot with the `+` operator. Each `+` indicates a new layer in the specified ggplot object and many layers can be added to a single plot in order to display the data in different ways. Every aspect of a plot can be controlled with different layers. The layer we add when telling ggplot how to plot the aesthetics (data) is usually called a **geom** (short for geometry).
 
-There are many types of geoms depending on what relationship you are trying to plot. A list of geoms can be found [here](https://ggplot2.tidyverse.org/reference/#geoms). For example, let's say we want to visualize the distribution of the penguins' body mass. Single distributions are typically plotted as histograms or density plots. So to generate the histogram, we would follow these steps:
+There are many types of geoms depending on what relationship you are trying to plot. A list of geoms can be found [here :octicons-link-external-24:](https://ggplot2.tidyverse.org/reference/#geoms){:target="_blank"}. For example, let's say we want to visualize the distribution of the penguins' body mass. Single distributions are typically plotted as histograms or density plots. So to generate the histogram, we would follow these steps:
 
 1.  Specify the dataset (in our case, `penguins`)
 2.  Identify the variables in the dataset to plot and specify them as aesthetics. This will require you to look at your data! For our first example, it will be `body_mass_g`
@@ -120,7 +124,7 @@ There are many types of geoms depending on what relationship you are trying to p
 Here's what that looks like. Run the following code block:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g)) +
   geom_histogram()
 ```
@@ -138,14 +142,14 @@ Importantly, each layer itself is a function that can take **arguments** (or **p
 Let's use this information to now plot a histograms of the penguin `body_mass_g` variable with different bin parameters:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g)) +
   geom_histogram(binwidth=50)
 ```
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g)) +
   geom_histogram(bins=10)
 ```
@@ -166,7 +170,7 @@ Different **geoms** have different visual properties (aesthetics) that can be as
 Let's change some of the mapping properties of the histogram plot we made by using these aesthetics inside the `geom_histogram()` function:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g)) +
   geom_histogram(color = "black", fill = "blue", linetype="dashed", alpha=0.6)
 ```
@@ -180,7 +184,7 @@ ggplot(penguins, aes(x = body_mass_g)) +
 In the above code, we used aesthetic mappings to change the visual properties of all the histogram bars at once. This is called **setting** the aesthetic property. Another thing we can do is **mapping** the aesthetic property to a variable in the data. This is done by putting the aesthetic inside the `aes()` function. This is useful when you want to color the bars by a variable in the data, like the species of the penguin:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g, fill = species)) +
   geom_histogram(color="black")
 ```
@@ -196,7 +200,7 @@ In the above code, we have **mapped** the fill aesthetic to the species variable
 Also notice how we have **set** the color of the outline of all the bars to be black. This is because the color aesthetic is not placed inside the `aes()` function, so it applies to every piece of data. Here's what happens if you put `color="black"` inside the `aes()` function:
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g, fill = species, color = "black")) +
   geom_histogram()
 ```
@@ -210,13 +214,13 @@ ggplot(penguins, aes(x = body_mass_g, fill = species, color = "black")) +
 And here's what happens when I try to put `fill=species` outside of the `aes()` function.
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g)) +
   geom_histogram(color="black", fill=species)
 ```
 
 ```
-## Error: object 'species' not found
+## Error in list2(binwidth = binwidth, bins = bins, na.rm = na.rm, orientation = orientation, : object 'species' not found
 ```
 
 R is throwing an error because it is only inside the `aes()` function that you can directly reference a variable in the data.
@@ -230,12 +234,12 @@ But first, we'll see how we can add another geom layer to the plot.
 In the below code, we will display data as a scatter plot using `geom_point()` layer. Since scatter plots require an x and y axis, in our `aes()` call we'll have to specify both. Let's compare the penguins' body mass with their bill lengths. We used `body_mass_g` and bill length is stored in the `bill_length_mm` column of our data. We will also add another geom layer, `geom_smooth()`, which is a function that will calculate and add a linear fit to the points.
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g, 
                      y = bill_length_mm, 
                      color=species)) +
   geom_point() +
-  geom_smooth(method = "lm", se=FALSE) # add linear fit, without confidence interval
+  geom_smooth(method = "lm", se=FALSE) ## add linear fit, without confidence interval
 ```
 
 ```
@@ -249,7 +253,7 @@ You can see that the linear fit is done to each species separately. This is beca
 What happens when we put the `aes(color=species)` inside the `geom_point()` function?
 
 
-``` r
+```r
 ggplot(penguins, aes(x = body_mass_g, y = bill_length_mm)) +
   geom_point(aes(color=species)) +
   geom_smooth(method = "lm", se=FALSE)
@@ -322,18 +326,18 @@ In this next section, we will go through the steps to recreate a more complex pl
 
 Often, we have an idea in our minds about what we want the graph to look like. For example, let's pretend this is what we want our graph to look like:
 
-### Example plot
+#### Example plot
 
-![](R_ggplot_revised_files/palmer_penguins.png)
+![](palmer_penguins.png)
 
-### Base plot
+#### Base plot
 
 Right now, this is our code based on what we've learned so far about mapping and setting aesthetics and layering geoms. We know where to put the `color` aesthetic and where to put the `shape` aesthetic, and how to prevent the legend from `geom_smooth` from showing. From a data perspective, all the same information is there, but it just looks not so great.
 
 So, since we want to experiment, we can save this plot to an object with the syntax `g <- ggplot()` . This creates an object called `g` in our environment that contains all the information to recreate this base plot. The nice thing is, as we will see, you can directly add layers with `+` to the plot object `g` as you experiment with changing the visual elements.
 
 
-``` r
+```r
 g <- ggplot(data=penguins, aes(x = bill_length_mm, 
                                y = bill_depth_mm, 
                                color = species)) + 
@@ -348,14 +352,14 @@ g
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
-### Base plot with labels
+#### Base plot with labels
 
 The first thing we want to do is to add a title, subtitle, x an y axis labels, and also a better legend title. All this can be accomplished with another layer called `labs()`. In the below code block, we are using our saved ggplot object called `g` from above so we don't have to type everything again to create the base plot. Using `g + blah()` allows us to add another layer without modifying the base plot.
 
 Notice how we added a title to the `color` aesthetic and it separated out that aesthetic from the `shape` aesthetic! This is because now `shape` and `color` now have two different names, one derived from the data and one provided by the `labs()` function.
 
 
-``` r
+```r
 g + 
   labs(title = "Penguin bill dimensions",
        subtitle = "Bill length and depth for Adelie, Chinstrap and Gentoo Penguins at Palmer Station LTER",
@@ -373,7 +377,7 @@ g +
 To fix this, we need to set both aesthetics to the same name. We could save this as our new base plot, but as we'll see later, the order of how we add layers matters, so we'll hold off for now.
 
 
-``` r
+```r
 g + 
   labs(title = "Penguin bill dimensions",
        subtitle = "Bill length and depth for Adelie, Chinstrap and Gentoo Penguins at Palmer Station LTER",
@@ -389,14 +393,14 @@ g +
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
-### Adding color scale
+#### Adding color scale
 
 Let's keep working from the base plot. The next major difference between our current plot and our ideal plot that we're going to tackle is the color, transparency, and the size of the shapes. All of these are aesthetic qualities, which mean it is about how the data are presented. So we'll need to modify the `geom` function and use a new type of function called a `scale` function. First let's modify the `geom_point` to change the size and transparency of the points.
 
 Remember that due to inheritance, we will need to re-specify that we want the geom_point's `aes` to assign `shape=species`. Also we will be setting the size and transparency (aka **alpha**) for all points so it goes outside the `aes` .
 
 
-``` r
+```r
 g + 
   geom_point(aes(shape=species), size=3, alpha = 0.8)
 ```
@@ -412,7 +416,7 @@ Now what about the difference in color? We can use a function of the class `scal
 R has built-in color names and that we can input that to `scale_color_manual`. There are 657 built in color names in R. You can see a list of them using the `colors()` function, type `demo("colors")` for an interactive tour of all of them, or simply search for an image of all the colors online. For now, we will cheat and I will provide that the original plot was made with the colors "darkorange", "purple" and "cyan4". These can be entered in order to the `values` parameter of `scale_color_manual`.
 
 
-``` r
+```r
 g + 
   geom_point(aes(shape=species), size=3, alpha = 0.8) +
   scale_color_manual(values = c("darkorange", "purple", "cyan4"))
@@ -426,10 +430,10 @@ g +
 
 BONUS: Read about pre-made color palettes
 
-We can use `scale_color_brewer` to take advantage of pre-made discrete color palettes. To see all the options type `RColorBrewer::display.brewer.all()` in your console. For more information on how to generate custom palettes, use rgb values to specify colors, and more, see chapter 12 "Using Colors in Plots" in the [R Graphics Cookbook](https://r-graphics.org/CHAPTER-COLORS).
+We can use `scale_color_brewer` to take advantage of pre-made discrete color palettes. To see all the options type `RColorBrewer::display.brewer.all()` in your console. For more information on how to generate custom palettes, use rgb values to specify colors, and more, see chapter 12 "Using Colors in Plots" in the [R Graphics Cookbook :octicons-link-external-24:](https://r-graphics.org/CHAPTER-COLORS){:target="_blank"}.
 
 
-``` r
+```r
 g + 
   geom_point(aes(shape=species), size=3, alpha = 0.8) +
   scale_color_brewer(palette = "Dark2")
@@ -446,7 +450,7 @@ BONUS: Read for more things you can control with scales for aesthetics
 The other things you can change in `scale_color_manual` is how each color is mapped to each discrete value and also how each discrete value is labeled. We can explicitly set key:value pairs inside this to control which penguin gets which color. The keys must be how they are stored in the data. But if how they are stored in the data is not what we want to display, like common name instead of scientific name, we can then label these penguins whatever we want using the `label` parameter.
 
 
-``` r
+```r
 g + 
   geom_point(aes(shape=species), size=3, alpha = 0.8) +
   scale_color_manual(values = c("Chinstrap"="darkorange", "Adelie"="purple", "Gentoo"="cyan4"), labels = c("Chinstrap"="P.antarcticus", "Gentoo"="P.papua", "Adelie"="P.adeliae"))
@@ -458,7 +462,7 @@ g +
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
-### Adding X/Y axis scale
+#### Adding X/Y axis scale
 
 One of the other differences between what we have now and the example plot are the X and Y axis tick marks. You will notice that in the example plot, there are many tick marks on the Y axis and a few additional ones on the X axis as well. Is this element of the plot a data-driven visual element or a non-data element?
 
@@ -481,7 +485,7 @@ The arguments for these functions include
 The below code demonstrates how to manually set the breaks and limits for the x axis to match the example plot. We use `seq()` to create a vector of numbers from 30 to 60 with a step size of 10. Those are the breaks - where the tick marks will be. We also make sure that the limits include those breaks, as the base plot had slightly narrower x limits.
 
 
-``` r
+```r
 g + 
   scale_x_continuous(breaks=seq(30,60,10), limits = c(30,60))
 ```
@@ -495,7 +499,7 @@ g +
 In the code block below, we will use the `n.breaks` argument in `scale_y_continuous` to add the number of breaks we want without having to manually create them. Now our axes look just like the example!
 
 
-``` r
+```r
 g + 
   scale_x_continuous(breaks=seq(30,60,10), limits = c(30,60)) +
   scale_y_continuous(n.breaks = 10)
@@ -512,14 +516,14 @@ BONUS: scaling the axes works for discrete values as well
 There are many more options for the scale functions. You can even use them with discrete variables to change the order of the labels or the colors of the bars. Here's an example of how you can change the order of the species in the legend. In the below code, I reordered the bars and also used the `position` argument to move the x axis to the top of the plot.
 
 
-``` r
+```r
 ggplot(penguins, aes(x = species, fill=species)) +
   geom_bar()
 ```
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
 
-``` r
+```r
 ggplot(penguins, aes(x = species, fill=species)) +
   geom_bar() +
   scale_x_discrete(limits = c("Chinstrap", "Gentoo", "Adelie"), position ="top")
@@ -527,12 +531,12 @@ ggplot(penguins, aes(x = species, fill=species)) +
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-24-2.png)<!-- -->
 
-### Base plot with all data elements
+#### Base plot with all data elements
 
 In the last sections we learned how to use `labs()`, `scale_color_manual()` , and `scale_x/y_continuous()` to affect change on the visual elements of the plot that depend on data. Let's put those together and see how close we are to the example plot.
 
 
-``` r
+```r
 g + 
   geom_point(aes(shape = species),
              size = 3,
@@ -554,9 +558,9 @@ g +
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
-![](R_ggplot_revised_files/palmer_penguins.png)
+![](palmer_penguins.png)
 
-### Theme
+#### Theme
 
 The remaining differences between this plot and our current plot are all due to the **non-data elements** of the plot. These include: the italicized font of the subtitle, the background color of the plot panel, the position and color of the legend. All these non-data elements can be edited using the `theme()` function.
 
@@ -577,7 +581,7 @@ In the below code, we've assembled all of our previous layers and added on the t
 -   removed the default white legend background color (you'll see what this means if you remove this line)
 
 
-``` r
+```r
 g_final <- ggplot(data = penguins, 
        aes(x = bill_length_mm,
            y = bill_depth_mm,
@@ -618,7 +622,7 @@ BONUS: Read about how you can change the look of the whole plot with just one li
 ggplot has many built-in complete themes that overhaul plots to look differently. Here's a few of them. See how the same plot can look really differen by just picking a bundled theme.
 
 
-``` r
+```r
 g_final + theme_dark()
 ```
 
@@ -628,7 +632,7 @@ g_final + theme_dark()
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
-``` r
+```r
 g_final + theme_minimal()
 ```
 
@@ -638,7 +642,7 @@ g_final + theme_minimal()
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-27-2.png)<!-- -->
 
-``` r
+```r
 g_final + theme_void()
 ```
 
@@ -648,7 +652,7 @@ g_final + theme_void()
 
 ![](R_ggplot_revised_files/figure-html/unnamed-chunk-27-3.png)<!-- -->
 
-### Plots that ggplot doesn't do well
+## Plots that ggplot doesn't do well
 
 Despite all the things ggplot can do, there are some plots that it doesn't do well. Here's a list of plot types you might want to make but would be served by using a different package:
 
@@ -657,11 +661,11 @@ Despite all the things ggplot can do, there are some plots that it doesn't do we
 -   dendrograms (ggtree)
 -   graphs (igraph, ggraph, tidygraph)
 
-# Where to read more
+## Where to read more
 
 The ggplot package has a lot more than just histograms, scatter plots, and linear fits. However, an exhaustive tour of the different geoms is a bit outside the scope of this workshop. Instead, we'll go over how to read the documentation of ggplot to figure out how to make the plot you want.
 
-The first place I like to look is on the ggplot cheatsheet, created by Posit. To see the cheatsheet, click [this link](https://rstudio.github.io/cheatsheets/html/data-visualization.html) and then click "Download pdf" on the right side. Here you can visually pick out the plot type you want and find the corresponding geom function, as well as a list of the aesthetics that can be mapped to variables in the data.
+The first place I like to look is on the ggplot cheatsheet, created by Posit. To see the cheatsheet, click [this link :octicons-link-external-24:](https://rstudio.github.io/cheatsheets/html/data-visualization.html){:target="_blank"} and then click "Download pdf" on the right side. Here you can visually pick out the plot type you want and find the corresponding geom function, as well as a list of the aesthetics that can be mapped to variables in the data.
 
 Because of the way ggplot functions are standardized, as long as you know the geom, you can follow the same pattern to create the plot you want. The syntax is:
 

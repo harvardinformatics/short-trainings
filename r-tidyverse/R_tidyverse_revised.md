@@ -6,11 +6,6 @@ output:
   html_document:
     keep_md: true
 ---
-<style>
-    .md-sidebar--secondary { order: 0; }
-    .md-sidebar--primary { display: none; }
-    /* This hides the Navigation sidebar and moves the TOC sidebar to the left in HTML renders */
-</style>
 
 ## R, RStudio, and R Markdown
 
@@ -19,12 +14,20 @@ Hello everyone. Let's get oriented to how today's tidyverse workshop is going to
 For those who are not familiar with this file format, this is an RMarkdown file, which is a mixture of formatted text and **code blocks**. Code is written and executed in these code blocks, which are delineated by the backtick character (\`). Each code block can have a language specified (in our case we will exclusively use `r`) as well as options specific to that block. Here is an example of an R code block in this R Markdown file:
 
 
-``` r
+```r
 getwd()
 ```
 
-``` r
+```
+## [1] "C:/bin/fasifx/informatics-website/docs/workshops/short-trainings/r-tidyverse"
+```
+
+```r
 print("hello world")
+```
+
+```
+## [1] "hello world"
 ```
 
 We will have exercises that are demarcated with a ">" symbol, like the one coming up!
@@ -52,8 +55,43 @@ In general tidy data is the format that is most conducive to data analysis and v
 If you haven't already, you will need to install and load the tidyverse package. Once you load it, you will see all the libraries that are included. 
 
 
-``` r
+```r
 if(!require(tidyverse)){install.packages("tidyverse", quiet=TRUE)}
+```
+
+```
+## Warning: package 'tidyverse' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'tibble' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'tidyr' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'readr' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'purrr' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'dplyr' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'stringr' was built under R version 4.1.3
+```
+
+```
+## Warning: package 'forcats' was built under R version 4.1.3
+```
+
+```r
 library(tidyverse)
 ```
 
@@ -70,31 +108,31 @@ Today we will be working with the data structure known as tibble. A tibble is a 
 Here is an example of a tibble:
 
 
-``` r
+```r
 mpg
 ```
 
 ```
-## # A tibble: 234 × 11
+## # A tibble: 234 x 11
 ##    manufacturer model      displ  year   cyl trans drv     cty   hwy fl    class
 ##    <chr>        <chr>      <dbl> <int> <int> <chr> <chr> <int> <int> <chr> <chr>
-##  1 audi         a4           1.8  1999     4 auto… f        18    29 p     comp…
-##  2 audi         a4           1.8  1999     4 manu… f        21    29 p     comp…
-##  3 audi         a4           2    2008     4 manu… f        20    31 p     comp…
-##  4 audi         a4           2    2008     4 auto… f        21    30 p     comp…
-##  5 audi         a4           2.8  1999     6 auto… f        16    26 p     comp…
-##  6 audi         a4           2.8  1999     6 manu… f        18    26 p     comp…
-##  7 audi         a4           3.1  2008     6 auto… f        18    27 p     comp…
-##  8 audi         a4 quattro   1.8  1999     4 manu… 4        18    26 p     comp…
-##  9 audi         a4 quattro   1.8  1999     4 auto… 4        16    25 p     comp…
-## 10 audi         a4 quattro   2    2008     4 manu… 4        20    28 p     comp…
-## # ℹ 224 more rows
+##  1 audi         a4           1.8  1999     4 auto~ f        18    29 p     comp~
+##  2 audi         a4           1.8  1999     4 manu~ f        21    29 p     comp~
+##  3 audi         a4           2    2008     4 manu~ f        20    31 p     comp~
+##  4 audi         a4           2    2008     4 auto~ f        21    30 p     comp~
+##  5 audi         a4           2.8  1999     6 auto~ f        16    26 p     comp~
+##  6 audi         a4           2.8  1999     6 manu~ f        18    26 p     comp~
+##  7 audi         a4           3.1  2008     6 auto~ f        18    27 p     comp~
+##  8 audi         a4 quattro   1.8  1999     4 manu~ 4        18    26 p     comp~
+##  9 audi         a4 quattro   1.8  1999     4 auto~ 4        16    25 p     comp~
+## 10 audi         a4 quattro   2    2008     4 manu~ 4        20    28 p     comp~
+## # i 224 more rows
 ```
 
 This tibble of different car specifications has 11 columns and each column holds either numerical or categorical data. The columns all have names, but the rows do not. You can access a column by using the `$` operator, like so:
 
 
-``` r
+```r
 mpg$manufacturer
 ```
 
@@ -151,29 +189,29 @@ mpg$manufacturer
 You can index a tibble by row and column using square brackets, like so:
 
 
-``` r
-# mpg[ROW, COLUMN]
-# Get the first row and first two columns
-# : is used to create a range of values
+```r
+## mpg[ROW, COLUMN]
+## Get the first row and first two columns
+## : is used to create a range of values
 mpg[1, 1:2]
 ```
 
 ```
-## # A tibble: 1 × 2
+## # A tibble: 1 x 2
 ##   manufacturer model
 ##   <chr>        <chr>
 ## 1 audi         a4
 ```
 
 
-``` r
-# mpg[ROW, COLUMNS]
-# Use the c() function to create a vector of column names
+```r
+## mpg[ROW, COLUMNS]
+## Use the c() function to create a vector of column names
 mpg[1:10, c("manufacturer", "model", "year")]
 ```
 
 ```
-## # A tibble: 10 × 3
+## # A tibble: 10 x 3
 ##    manufacturer model       year
 ##    <chr>        <chr>      <int>
 ##  1 audi         a4          1999
@@ -195,10 +233,10 @@ If you have used R previously, you may be familiar with the typical way to call 
 Below is the historical "base R" way of calling functions in R:
 
 
-``` r
-# filter some dataset
+```r
+## filter some dataset
 mpg_audi <- filter(mpg, manufacturer == "audi")
-# count number of rows
+## count number of rows
 nrow(mpg_audi)
 ```
 
@@ -209,7 +247,7 @@ nrow(mpg_audi)
 If we use pipes ` %>% `, we can rewrite the code in one line and avoid saving extra variables:
 
 
-``` r
+```r
 mpg %>% 
   filter(manufacturer == "audi") %>% 
   nrow()
@@ -228,38 +266,38 @@ Our definition of a tidy dataset is one in which all data is in a 2D table with 
 Here is an example of tidy data:
 
 
-``` r
+```r
 mpg
 ```
 
 ```
-## # A tibble: 234 × 11
+## # A tibble: 234 x 11
 ##    manufacturer model      displ  year   cyl trans drv     cty   hwy fl    class
 ##    <chr>        <chr>      <dbl> <int> <int> <chr> <chr> <int> <int> <chr> <chr>
-##  1 audi         a4           1.8  1999     4 auto… f        18    29 p     comp…
-##  2 audi         a4           1.8  1999     4 manu… f        21    29 p     comp…
-##  3 audi         a4           2    2008     4 manu… f        20    31 p     comp…
-##  4 audi         a4           2    2008     4 auto… f        21    30 p     comp…
-##  5 audi         a4           2.8  1999     6 auto… f        16    26 p     comp…
-##  6 audi         a4           2.8  1999     6 manu… f        18    26 p     comp…
-##  7 audi         a4           3.1  2008     6 auto… f        18    27 p     comp…
-##  8 audi         a4 quattro   1.8  1999     4 manu… 4        18    26 p     comp…
-##  9 audi         a4 quattro   1.8  1999     4 auto… 4        16    25 p     comp…
-## 10 audi         a4 quattro   2    2008     4 manu… 4        20    28 p     comp…
-## # ℹ 224 more rows
+##  1 audi         a4           1.8  1999     4 auto~ f        18    29 p     comp~
+##  2 audi         a4           1.8  1999     4 manu~ f        21    29 p     comp~
+##  3 audi         a4           2    2008     4 manu~ f        20    31 p     comp~
+##  4 audi         a4           2    2008     4 auto~ f        21    30 p     comp~
+##  5 audi         a4           2.8  1999     6 auto~ f        16    26 p     comp~
+##  6 audi         a4           2.8  1999     6 manu~ f        18    26 p     comp~
+##  7 audi         a4           3.1  2008     6 auto~ f        18    27 p     comp~
+##  8 audi         a4 quattro   1.8  1999     4 manu~ 4        18    26 p     comp~
+##  9 audi         a4 quattro   1.8  1999     4 auto~ 4        16    25 p     comp~
+## 10 audi         a4 quattro   2    2008     4 manu~ 4        20    28 p     comp~
+## # i 224 more rows
 ```
 
 In the dataset mpg, each row is a different model of car, and the columns are different variables that describe each car. By having data in this format, we can easily answer questions such as "What is the number of different car classes that each manufacturer creates?". Run the code below for a demonstration of the readability of tidy data analysis. (Don't worry about the actual functions for now, we'll cover them later)
 
 
-``` r
+```r
 mpg %>% 
   group_by(manufacturer) %>% 
   summarize(n_distinct(class))
 ```
 
 ```
-## # A tibble: 15 × 2
+## # A tibble: 15 x 2
 ##    manufacturer `n_distinct(class)`
 ##    <chr>                      <int>
 ##  1 audi                           2
@@ -282,39 +320,39 @@ mpg %>%
 Here is an example of data that is not tidy:
 
 
-``` r
+```r
 billboard
 ```
 
 ```
-## # A tibble: 317 × 79
+## # A tibble: 317 x 79
 ##    artist     track date.entered   wk1   wk2   wk3   wk4   wk5   wk6   wk7   wk8
 ##    <chr>      <chr> <date>       <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-##  1 2 Pac      Baby… 2000-02-26      87    82    72    77    87    94    99    NA
-##  2 2Ge+her    The … 2000-09-02      91    87    92    NA    NA    NA    NA    NA
-##  3 3 Doors D… Kryp… 2000-04-08      81    70    68    67    66    57    54    53
-##  4 3 Doors D… Loser 2000-10-21      76    76    72    69    67    65    55    59
-##  5 504 Boyz   Wobb… 2000-04-15      57    34    25    17    17    31    36    49
-##  6 98^0       Give… 2000-08-19      51    39    34    26    26    19     2     2
-##  7 A*Teens    Danc… 2000-07-08      97    97    96    95   100    NA    NA    NA
-##  8 Aaliyah    I Do… 2000-01-29      84    62    51    41    38    35    35    38
-##  9 Aaliyah    Try … 2000-03-18      59    53    38    28    21    18    16    14
-## 10 Adams, Yo… Open… 2000-08-26      76    76    74    69    68    67    61    58
-## # ℹ 307 more rows
-## # ℹ 68 more variables: wk9 <dbl>, wk10 <dbl>, wk11 <dbl>, wk12 <dbl>,
+##  1 2 Pac      Baby~ 2000-02-26      87    82    72    77    87    94    99    NA
+##  2 2Ge+her    The ~ 2000-09-02      91    87    92    NA    NA    NA    NA    NA
+##  3 3 Doors D~ Kryp~ 2000-04-08      81    70    68    67    66    57    54    53
+##  4 3 Doors D~ Loser 2000-10-21      76    76    72    69    67    65    55    59
+##  5 504 Boyz   Wobb~ 2000-04-15      57    34    25    17    17    31    36    49
+##  6 98^0       Give~ 2000-08-19      51    39    34    26    26    19     2     2
+##  7 A*Teens    Danc~ 2000-07-08      97    97    96    95   100    NA    NA    NA
+##  8 Aaliyah    I Do~ 2000-01-29      84    62    51    41    38    35    35    38
+##  9 Aaliyah    Try ~ 2000-03-18      59    53    38    28    21    18    16    14
+## 10 Adams, Yo~ Open~ 2000-08-26      76    76    74    69    68    67    61    58
+## # i 307 more rows
+## # i 68 more variables: wk9 <dbl>, wk10 <dbl>, wk11 <dbl>, wk12 <dbl>,
 ## #   wk13 <dbl>, wk14 <dbl>, wk15 <dbl>, wk16 <dbl>, wk17 <dbl>, wk18 <dbl>,
 ## #   wk19 <dbl>, wk20 <dbl>, wk21 <dbl>, wk22 <dbl>, wk23 <dbl>, wk24 <dbl>,
 ## #   wk25 <dbl>, wk26 <dbl>, wk27 <dbl>, wk28 <dbl>, wk29 <dbl>, wk30 <dbl>,
 ## #   wk31 <dbl>, wk32 <dbl>, wk33 <dbl>, wk34 <dbl>, wk35 <dbl>, wk36 <dbl>,
-## #   wk37 <dbl>, wk38 <dbl>, wk39 <dbl>, wk40 <dbl>, wk41 <dbl>, wk42 <dbl>, …
+## #   wk37 <dbl>, wk38 <dbl>, wk39 <dbl>, wk40 <dbl>, wk41 <dbl>, wk42 <dbl>, ...
 ```
 
 In this billboard dataset example, each row is a different track, but the columns represent observations of their rank on the billboard chart in different weeks. So multiple observations are stored across multiple columns. Why is this a problem? It makes it difficult to analyze the data. For example, if we wanted to know how many weeks each song was on the billboard chart, we would have to write a lot of code to parse out the columns and count the number of weeks. Below is the code that is required to create a new data frame that counts the number of weeks each song was on the billboard chart.
 
 
-``` r
-# first we need to get just the columns for week
-# it's messy because we need to use regular expression to parse out the columns
+```r
+## first we need to get just the columns for week
+## it's messy because we need to use regular expression to parse out the columns
 week_columns <- grep("^wk", names(billboard), value = TRUE)
 print(week_columns)
 ```
@@ -330,9 +368,9 @@ print(week_columns)
 ## [71] "wk71" "wk72" "wk73" "wk74" "wk75" "wk76"
 ```
 
-``` r
-# Make a new data frame that counts the number of weeks each song was on the billboard chart
-# This is difficult to read and interpret
+```r
+## Make a new data frame that counts the number of weeks each song was on the billboard chart
+## This is difficult to read and interpret
 number_of_weeks <- apply(billboard[week_columns], 1, function(x) sum(!is.na(x)))
 print(number_of_weeks)
 ```
@@ -353,8 +391,8 @@ print(number_of_weeks)
 ## [301] 41 21 12  9 11 20  6 20 19 18 15 10  8  6 14  2 39
 ```
 
-``` r
-# merge the number of weeks to the columns for the song
+```r
+## merge the number of weeks to the columns for the song
 songs_week <- cbind(billboard[,c("artist", "track")], number_of_weeks)
 
 head(songs_week)
@@ -373,8 +411,8 @@ head(songs_week)
 Here is the same code after we've tidied the data. We use one line to tidy the data and then one line to extract the information we want. We'll go over exactly how to tidy the data shortly; this is just to compare the readability of this code vs the previous block. 
 
 
-``` r
-# This tidies the data
+```r
+## This tidies the data
 billboard_tidy <- billboard %>% 
   pivot_longer(cols = starts_with("wk"),
                names_to = "week",
@@ -385,7 +423,7 @@ print(billboard_tidy)
 ```
 
 ```
-## # A tibble: 5,307 × 5
+## # A tibble: 5,307 x 5
 ##    artist  track                   date.entered week  ranking
 ##    <chr>   <chr>                   <date>       <chr>   <dbl>
 ##  1 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk1        87
@@ -398,12 +436,12 @@ print(billboard_tidy)
 ##  8 2Ge+her The Hardest Part Of ... 2000-09-02   wk1        91
 ##  9 2Ge+her The Hardest Part Of ... 2000-09-02   wk2        87
 ## 10 2Ge+her The Hardest Part Of ... 2000-09-02   wk3        92
-## # ℹ 5,297 more rows
+## # i 5,297 more rows
 ```
 
-``` r
-# Once data is tidied, we just need two function calls to get the info we need
-# This is much easier to read and interpret
+```r
+## Once data is tidied, we just need two function calls to get the info we need
+## This is much easier to read and interpret
 billboard_tidy %>% 
   group_by(artist, track) %>% 
   summarize(number_of_weeks = n())
@@ -415,7 +453,7 @@ billboard_tidy %>%
 ```
 
 ```
-## # A tibble: 317 × 3
+## # A tibble: 317 x 3
 ## # Groups:   artist [228]
 ##    artist         track                   number_of_weeks
 ##    <chr>          <chr>                             <int>
@@ -429,51 +467,51 @@ billboard_tidy %>%
 ##  8 Aaliyah        I Don't Wanna                        20
 ##  9 Aaliyah        Try Again                            32
 ## 10 Adams, Yolanda Open My Heart                        20
-## # ℹ 307 more rows
+## # i 307 more rows
 ```
 
 >**Exercise**: Load the `relig_income` dataset. Is this data tidy? Why or why not?
 
 
-``` r
+```r
 relig_income
 ```
 
 ```
-## # A tibble: 18 × 11
+## # A tibble: 18 x 11
 ##    religion `<$10k` `$10-20k` `$20-30k` `$30-40k` `$40-50k` `$50-75k` `$75-100k`
 ##    <chr>      <dbl>     <dbl>     <dbl>     <dbl>     <dbl>     <dbl>      <dbl>
 ##  1 Agnostic      27        34        60        81        76       137        122
 ##  2 Atheist       12        27        37        52        35        70         73
 ##  3 Buddhist      27        21        30        34        33        58         62
 ##  4 Catholic     418       617       732       670       638      1116        949
-##  5 Don’t k…      15        14        15        11        10        35         21
-##  6 Evangel…     575       869      1064       982       881      1486        949
+##  5 Don’t k~      15        14        15        11        10        35         21
+##  6 Evangel~     575       869      1064       982       881      1486        949
 ##  7 Hindu          1         9         7         9        11        34         47
-##  8 Histori…     228       244       236       238       197       223        131
-##  9 Jehovah…      20        27        24        24        21        30         15
+##  8 Histori~     228       244       236       238       197       223        131
+##  9 Jehovah~      20        27        24        24        21        30         15
 ## 10 Jewish        19        19        25        25        30        95         69
-## 11 Mainlin…     289       495       619       655       651      1107        939
+## 11 Mainlin~     289       495       619       655       651      1107        939
 ## 12 Mormon        29        40        48        51        56       112         85
 ## 13 Muslim         6         7         9        10         9        23         16
 ## 14 Orthodox      13        17        23        32        32        47         38
-## 15 Other C…       9         7        11        13        13        14         18
-## 16 Other F…      20        33        40        46        49        63         46
-## 17 Other W…       5         2         3         4         2         7          3
-## 18 Unaffil…     217       299       374       365       341       528        407
-## # ℹ 3 more variables: `$100-150k` <dbl>, `>150k` <dbl>,
+## 15 Other C~       9         7        11        13        13        14         18
+## 16 Other F~      20        33        40        46        49        63         46
+## 17 Other W~       5         2         3         4         2         7          3
+## 18 Unaffil~     217       299       374       365       341       528        407
+## # i 3 more variables: `$100-150k` <dbl>, `>150k` <dbl>,
 ## #   `Don't know/refused` <dbl>
 ```
 
 >**Exercise**: Load the `ChickWeight` dataset. Is this data tidy? Why or why not?
 
 
-``` r
+```r
 tibble(ChickWeight)
 ```
 
 ```
-## # A tibble: 578 × 4
+## # A tibble: 578 x 4
 ##    weight  Time Chick Diet 
 ##     <dbl> <dbl> <ord> <fct>
 ##  1     42     0 1     1    
@@ -486,7 +524,7 @@ tibble(ChickWeight)
 ##  8    125    14 1     1    
 ##  9    149    16 1     1    
 ## 10    171    18 1     1    
-## # ℹ 568 more rows
+## # i 568 more rows
 ```
 
 In the two code blocks above, `relig_income` is not tidy because the income brackets are spread out across the column. In the `ChickWeight` dataset, these data **are** tidy. Each row is a different chick, observed at a different time. 
@@ -508,14 +546,14 @@ pivot_longer(data, cols, names_to, values_to)
 We start with the `data`, then specify the `cols` we want to gather together (the "wk" columns). This will then take all those column names and put it under a new variable named `names_to`. The values of those weeks, aka the rankings, we're going to pass to `values_to`. So all the data from the "wk" columns will be collapsed into two columns, one for "week" and one for "ranking". The rest of the data will be duplicated as needed to uniquely identify each observation.
 
 
-``` r
+```r
 billboard %>% pivot_longer(cols = starts_with("wk"),
                            names_to = "week",
                            values_to = "ranking")
 ```
 
 ```
-## # A tibble: 24,092 × 5
+## # A tibble: 24,092 x 5
 ##    artist track                   date.entered week  ranking
 ##    <chr>  <chr>                   <date>       <chr>   <dbl>
 ##  1 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk1        87
@@ -528,13 +566,13 @@ billboard %>% pivot_longer(cols = starts_with("wk"),
 ##  8 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk8        NA
 ##  9 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk9        NA
 ## 10 2 Pac  Baby Don't Cry (Keep... 2000-02-26   wk10       NA
-## # ℹ 24,082 more rows
+## # i 24,082 more rows
 ```
 
 This looks a bit better, but we created a lot of extraneous columns due to the default behavior of `pivot_longer()` creating a row for every combination of the gathered variable (week) and the song. We can have it drop the NA values by adding the argument `values_drop_na = TRUE`. Run the below code and you'll see that our number of rows drops from 24 thousand to 5 thousand by excluding the empty weeks. 
 
 
-``` r
+```r
 billboard %>% pivot_longer(cols = starts_with("wk"),
                            names_to = "week",
                            values_to = "ranking",
@@ -542,7 +580,7 @@ billboard %>% pivot_longer(cols = starts_with("wk"),
 ```
 
 ```
-## # A tibble: 5,307 × 5
+## # A tibble: 5,307 x 5
 ##    artist  track                   date.entered week  ranking
 ##    <chr>   <chr>                   <date>       <chr>   <dbl>
 ##  1 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk1        87
@@ -555,23 +593,23 @@ billboard %>% pivot_longer(cols = starts_with("wk"),
 ##  8 2Ge+her The Hardest Part Of ... 2000-09-02   wk1        91
 ##  9 2Ge+her The Hardest Part Of ... 2000-09-02   wk2        87
 ## 10 2Ge+her The Hardest Part Of ... 2000-09-02   wk3        92
-## # ℹ 5,297 more rows
+## # i 5,297 more rows
 ```
 
 >**Exercise**: Look at the `relig_income` dataset. How would you pivot this data to make it tidy? Think of the function `pivot_longer(data, cols, names_to, values_to)`. What would be cols, names_to, and values_to?
 
 
-``` r
-# cols is every column except religion
-# names_to would be income bracket, which we can shorten to "income"
-# values_to would be the "count" of people in that religion and income bracket
+```r
+## cols is every column except religion
+## names_to would be income bracket, which we can shorten to "income"
+## values_to would be the "count" of people in that religion and income bracket
 relig_income %>% pivot_longer(cols = !religion,
                              names_to = "income",
                              values_to = "count")
 ```
 
 ```
-## # A tibble: 180 × 3
+## # A tibble: 180 x 3
 ##    religion income             count
 ##    <chr>    <chr>              <dbl>
 ##  1 Agnostic <$10k                 27
@@ -584,7 +622,7 @@ relig_income %>% pivot_longer(cols = !religion,
 ##  8 Agnostic $100-150k            109
 ##  9 Agnostic >150k                 84
 ## 10 Agnostic Don't know/refused    96
-## # ℹ 170 more rows
+## # i 170 more rows
 ```
 
 In the above example, there are a few other ways to select the columns you want, such as `"<$10k":"Don't know/refused"` or listing them each out `c("<$10k", "$10-20k", ...)`.
@@ -592,12 +630,12 @@ In the above example, there are a few other ways to select the columns you want,
 >**Exercise**: Look at the dataset `table2`. Is this tidy data? 
 
 
-``` r
+```r
 table2
 ```
 
 ```
-## # A tibble: 12 × 4
+## # A tibble: 12 x 4
 ##    country      year type            count
 ##    <chr>       <dbl> <chr>           <dbl>
 ##  1 Afghanistan  1999 cases             745
@@ -624,12 +662,12 @@ pivot_wider(data, names_from, values_from)
 * values_from = the column that contains the data for these new columns
 
 
-``` r
+```r
 table2 %>% pivot_wider(names_from = type, values_from = count)
 ```
 
 ```
-## # A tibble: 6 × 4
+## # A tibble: 6 x 4
 ##   country      year  cases population
 ##   <chr>       <dbl>  <dbl>      <dbl>
 ## 1 Afghanistan  1999    745   19987071
@@ -643,15 +681,15 @@ table2 %>% pivot_wider(names_from = type, values_from = count)
 How does this help us analyze the data? Think about the question "What is the rate of disease in each country?" The rate of the disease is the number of cases divided by the total population. In the long version of the data, we would need to divide rows against each other. In this version, we just need to divide the columns, which are easily accessed by the column names.
 
 
-``` r
-# long version of table2 disease incidence
+```r
+## long version of table2 disease incidence
 table2 %>% 
   group_by(country) %>% 
   summarize(rate = sum(count[type == "cases"]) / sum(count[type == "population"]))
 ```
 
 ```
-## # A tibble: 3 × 2
+## # A tibble: 3 x 2
 ##   country          rate
 ##   <chr>           <dbl>
 ## 1 Afghanistan 0.0000841
@@ -662,11 +700,11 @@ table2 %>%
 This is the wide version of `table2`. 
 
 
-``` r
-# wide version of table2 disease incidence
+```r
+## wide version of table2 disease incidence
 table2_wider <- table2 %>% pivot_wider(names_from = type, values_from = count)
 
-# just use the cases and population to calculate the rate
+## just use the cases and population to calculate the rate
 table2_wider$cases / table2_wider$population
 ```
 
@@ -675,14 +713,14 @@ table2_wider$cases / table2_wider$population
 ## [6] 0.0001669488
 ```
 
-``` r
-# calculate the rate but tack it on to the parent dataset
+```r
+## calculate the rate but tack it on to the parent dataset
 table2_wider %>% 
   mutate(rate = cases / population)
 ```
 
 ```
-## # A tibble: 6 × 5
+## # A tibble: 6 x 5
 ##   country      year  cases population      rate
 ##   <chr>       <dbl>  <dbl>      <dbl>     <dbl>
 ## 1 Afghanistan  1999    745   19987071 0.0000373
@@ -701,7 +739,7 @@ Another way in which data can be "untidy" is if you have observations spread out
 We can merge tables by performing "mutating joins". In tidyverse, joins are performed one pair of tables at a time, such that, if you have tables x, y, and z, you must first join x and y to produce a new table xy, then join xy and z to create xyz. As we shall see below, a requirement of such joins is that any two tables to be joined contain unique observations on the same variable.
 
 
-``` r
+```r
 df1 <- tibble(
   name = c("Daffy", "Donald", "Mickey", "Goofy", "Tweety"),
   species = c("duck", "duck", "mouse", "dog", "bird")
@@ -733,12 +771,12 @@ The join function takes two tibbles, `df1` and `df2`, and joins them on the colu
 The inner join only preserves rows that have matching data in both tables. 
 
 
-``` r
+```r
 inner_join(df1, df2, by = "name")
 ```
 
 ```
-## # A tibble: 4 × 3
+## # A tibble: 4 x 3
 ##   name   species weight
 ##   <chr>  <chr>    <dbl>
 ## 1 Daffy  duck         5
@@ -750,14 +788,14 @@ inner_join(df1, df2, by = "name")
 Here's what the three tables would look like if we chain joined them with `inner_join()`:
 
 
-``` r
+```r
 df1 %>% 
   inner_join(df2, by = "name") %>% 
-  inner_join(df3, by = c("species" = "animal")) # this is what to do if the column names are different
+  inner_join(df3, by = c("species" = "animal")) ## this is what to do if the column names are different
 ```
 
 ```
-## # A tibble: 4 × 4
+## # A tibble: 4 x 4
 ##   name   species weight sound 
 ##   <chr>  <chr>    <dbl> <chr> 
 ## 1 Daffy  duck         5 quack 
@@ -771,12 +809,12 @@ df1 %>%
 In a `left_join()`, when given tables x and y, the result is to retain all rows in x, regardless if there is matching data in y: missing data in y will get returned as NAs in the new table.
 
 
-``` r
+```r
 left_join(df1, df2, by = "name")
 ```
 
 ```
-## # A tibble: 5 × 3
+## # A tibble: 5 x 3
 ##   name   species weight
 ##   <chr>  <chr>    <dbl>
 ## 1 Daffy  duck         5
@@ -789,14 +827,14 @@ left_join(df1, df2, by = "name")
 Here's the result of chaining the three tables with `left_join()`:
 
 
-``` r
+```r
 df1 %>% 
   left_join(df2, by = "name") %>% 
   left_join(df3, by = c("species" = "animal"))
 ```
 
 ```
-## # A tibble: 5 × 4
+## # A tibble: 5 x 4
 ##   name   species weight sound 
 ##   <chr>  <chr>    <dbl> <chr> 
 ## 1 Daffy  duck         5 quack 
@@ -811,14 +849,14 @@ df1 %>%
 In full joins, you keep all the data from both tables, and fill in missing data with NAs. Here's what a full join of all three tables looks like. 
 
 
-``` r
+```r
 df1 %>% 
   full_join(df2, by = "name") %>% 
   full_join(df3, by = c("species" = "animal"))
 ```
 
 ```
-## # A tibble: 7 × 4
+## # A tibble: 7 x 4
 ##   name   species weight sound 
 ##   <chr>  <chr>    <dbl> <chr> 
 ## 1 Daffy  duck         5 quack 
@@ -837,117 +875,124 @@ The key concept to understanding joins is the idea of **relational data**. In re
 Here is a more advanced example of joining multiple datasets together. The `nycflights13` package contains a set of tables relating to flights out of the three NYC airports. 
 
 
-``` r
+```r
 if(!require(nycflights13)){install.packages("nycflights13", quiet=TRUE)}
+```
+
+```
+## Warning: package 'nycflights13' was built under R version 4.1.3
+```
+
+```r
 library(nycflights13)
 ```
 
 
-``` r
+```r
 glimpse(flights)
 ```
 
 ```
 ## Rows: 336,776
 ## Columns: 19
-## $ year           <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2…
-## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, …
-## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, …
-## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1…
-## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,…
-## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,…
-## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1…
-## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "…
-## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4…
-## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394…
-## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",…
-## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",…
-## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1…
-## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, …
-## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6…
-## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0…
-## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0…
+## $ year           <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2~
+## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, ~
+## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, ~
+## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1~
+## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,~
+## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,~
+## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1~
+## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "~
+## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4~
+## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394~
+## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",~
+## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",~
+## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1~
+## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, ~
+## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6~
+## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0~
+## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0~
 ```
 
 
-``` r
+```r
 glimpse(airlines)
 ```
 
 ```
 ## Rows: 16
 ## Columns: 2
-## $ carrier <chr> "9E", "AA", "AS", "B6", "DL", "EV", "F9", "FL", "HA", "MQ", "O…
-## $ name    <chr> "Endeavor Air Inc.", "American Airlines Inc.", "Alaska Airline…
+## $ carrier <chr> "9E", "AA", "AS", "B6", "DL", "EV", "F9", "FL", "HA", "MQ", "O~
+## $ name    <chr> "Endeavor Air Inc.", "American Airlines Inc.", "Alaska Airline~
 ```
 
 
-``` r
+```r
 glimpse(planes)
 ```
 
 ```
 ## Rows: 3,322
 ## Columns: 9
-## $ tailnum      <chr> "N10156", "N102UW", "N103US", "N104UW", "N10575", "N105UW…
-## $ year         <int> 2004, 1998, 1999, 1999, 2002, 1999, 1999, 1999, 1999, 199…
-## $ type         <chr> "Fixed wing multi engine", "Fixed wing multi engine", "Fi…
-## $ manufacturer <chr> "EMBRAER", "AIRBUS INDUSTRIE", "AIRBUS INDUSTRIE", "AIRBU…
-## $ model        <chr> "EMB-145XR", "A320-214", "A320-214", "A320-214", "EMB-145…
-## $ engines      <int> 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, …
-## $ seats        <int> 55, 182, 182, 182, 55, 182, 182, 182, 182, 182, 55, 55, 5…
-## $ speed        <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
-## $ engine       <chr> "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turb…
+## $ tailnum      <chr> "N10156", "N102UW", "N103US", "N104UW", "N10575", "N105UW~
+## $ year         <int> 2004, 1998, 1999, 1999, 2002, 1999, 1999, 1999, 1999, 199~
+## $ type         <chr> "Fixed wing multi engine", "Fixed wing multi engine", "Fi~
+## $ manufacturer <chr> "EMBRAER", "AIRBUS INDUSTRIE", "AIRBUS INDUSTRIE", "AIRBU~
+## $ model        <chr> "EMB-145XR", "A320-214", "A320-214", "A320-214", "EMB-145~
+## $ engines      <int> 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, ~
+## $ seats        <int> 55, 182, 182, 182, 55, 182, 182, 182, 182, 182, 55, 55, 5~
+## $ speed        <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ engine       <chr> "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turb~
 ```
 
 
-``` r
+```r
 glimpse(airports)
 ```
 
 ```
 ## Rows: 1,458
 ## Columns: 8
-## $ faa   <chr> "04G", "06A", "06C", "06N", "09J", "0A9", "0G6", "0G7", "0P2", "…
-## $ name  <chr> "Lansdowne Airport", "Moton Field Municipal Airport", "Schaumbur…
-## $ lat   <dbl> 41.13047, 32.46057, 41.98934, 41.43191, 31.07447, 36.37122, 41.4…
-## $ lon   <dbl> -80.61958, -85.68003, -88.10124, -74.39156, -81.42778, -82.17342…
-## $ alt   <dbl> 1044, 264, 801, 523, 11, 1593, 730, 492, 1000, 108, 409, 875, 10…
-## $ tz    <dbl> -5, -6, -6, -5, -5, -5, -5, -5, -5, -8, -5, -6, -5, -5, -5, -5, …
-## $ dst   <chr> "A", "A", "A", "A", "A", "A", "A", "A", "U", "A", "A", "U", "A",…
-## $ tzone <chr> "America/New_York", "America/Chicago", "America/Chicago", "Ameri…
+## $ faa   <chr> "04G", "06A", "06C", "06N", "09J", "0A9", "0G6", "0G7", "0P2", "~
+## $ name  <chr> "Lansdowne Airport", "Moton Field Municipal Airport", "Schaumbur~
+## $ lat   <dbl> 41.13047, 32.46057, 41.98934, 41.43191, 31.07447, 36.37122, 41.4~
+## $ lon   <dbl> -80.61958, -85.68003, -88.10124, -74.39156, -81.42778, -82.17342~
+## $ alt   <dbl> 1044, 264, 801, 523, 11, 1593, 730, 492, 1000, 108, 409, 875, 10~
+## $ tz    <dbl> -5, -6, -6, -5, -5, -5, -5, -5, -5, -8, -5, -6, -5, -5, -5, -5, ~
+## $ dst   <chr> "A", "A", "A", "A", "A", "A", "A", "A", "U", "A", "A", "U", "A",~
+## $ tzone <chr> "America/New_York", "America/Chicago", "America/Chicago", "Ameri~
 ```
 
 
-``` r
+```r
 glimpse(weather)
 ```
 
 ```
 ## Rows: 26,115
 ## Columns: 15
-## $ origin     <chr> "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EW…
-## $ year       <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,…
-## $ month      <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
-## $ day        <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
-## $ hour       <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, …
-## $ temp       <dbl> 39.02, 39.02, 39.02, 39.92, 39.02, 37.94, 39.02, 39.92, 39.…
-## $ dewp       <dbl> 26.06, 26.96, 28.04, 28.04, 28.04, 28.04, 28.04, 28.04, 28.…
-## $ humid      <dbl> 59.37, 61.63, 64.43, 62.21, 64.43, 67.21, 64.43, 62.21, 62.…
-## $ wind_dir   <dbl> 270, 250, 240, 250, 260, 240, 240, 250, 260, 260, 260, 330,…
-## $ wind_speed <dbl> 10.35702, 8.05546, 11.50780, 12.65858, 12.65858, 11.50780, …
-## $ wind_gust  <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 20.…
-## $ precip     <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
-## $ pressure   <dbl> 1012.0, 1012.3, 1012.5, 1012.2, 1011.9, 1012.4, 1012.2, 101…
-## $ visib      <dbl> 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,…
-## $ time_hour  <dttm> 2013-01-01 01:00:00, 2013-01-01 02:00:00, 2013-01-01 03:00…
+## $ origin     <chr> "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EW~
+## $ year       <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,~
+## $ month      <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,~
+## $ day        <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,~
+## $ hour       <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, ~
+## $ temp       <dbl> 39.02, 39.02, 39.02, 39.92, 39.02, 37.94, 39.02, 39.92, 39.~
+## $ dewp       <dbl> 26.06, 26.96, 28.04, 28.04, 28.04, 28.04, 28.04, 28.04, 28.~
+## $ humid      <dbl> 59.37, 61.63, 64.43, 62.21, 64.43, 67.21, 64.43, 62.21, 62.~
+## $ wind_dir   <dbl> 270, 250, 240, 250, 260, 240, 240, 250, 260, 260, 260, 330,~
+## $ wind_speed <dbl> 10.35702, 8.05546, 11.50780, 12.65858, 12.65858, 11.50780, ~
+## $ wind_gust  <dbl> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 20.~
+## $ precip     <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,~
+## $ pressure   <dbl> 1012.0, 1012.3, 1012.5, 1012.2, 1011.9, 1012.4, 1012.2, 101~
+## $ visib      <dbl> 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,~
+## $ time_hour  <dttm> 2013-01-01 01:00:00, 2013-01-01 02:00:00, 2013-01-01 03:00~
 ```
 
 In this complex dataset, we have a table of flights, airlines, planes, airports, and weather. They all share some common columns, though the columns may not be named the same. For example, the `flights` table has `carrier` column that directly corresponds to the `airlines` table's `carrier` column. But the `origin` and `dest` columns in the `flights` table correspond to the `faa` column in the `airports` table.
 
-[Here](https://r4ds.hadley.nz/joins.html#fig-flights-relationships) is a graphic of how these tables are related. (This is from the R4DS book, which is a great resource for learning tidyverse).
+[Here :octicons-link-external-24:](https://r4ds.hadley.nz/joins.html#fig-flights-relationships){:target="_blank"} is a graphic of how these tables are related. (This is from the R4DS book, which is a great resource for learning tidyverse).
 
 >**Exercise**: By looking at this table, can you see how we would go about joining these tables together? If you wanted to know which airlines were the most delayed, which tables would you need to join together? What if you want to know the relationship between the age of a plane and its delay time?
 
@@ -955,7 +1000,7 @@ In this complex dataset, we have a table of flights, airlines, planes, airports,
 >**Exercise**: Compare the two code blocks below. What is different between the results?
 
 
-``` r
+```r
 flights %>% 
   left_join(planes) %>% 
   glimpse()
@@ -968,36 +1013,36 @@ flights %>%
 ```
 ## Rows: 336,776
 ## Columns: 26
-## $ year           <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2…
-## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, …
-## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, …
-## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1…
-## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,…
-## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,…
-## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1…
-## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "…
-## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4…
-## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394…
-## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",…
-## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",…
-## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1…
-## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, …
-## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6…
-## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0…
-## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0…
-## $ type           <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ manufacturer   <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ model          <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ engines        <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ seats          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ speed          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ engine         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+## $ year           <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2~
+## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, ~
+## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, ~
+## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1~
+## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,~
+## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,~
+## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1~
+## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "~
+## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4~
+## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394~
+## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",~
+## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",~
+## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1~
+## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, ~
+## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6~
+## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0~
+## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0~
+## $ type           <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ manufacturer   <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ model          <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ engines        <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ seats          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ speed          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ engine         <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
 ```
 
 
-``` r
+```r
 flights %>% 
   left_join(planes, by="tailnum") %>% 
   glimpse()
@@ -1006,38 +1051,38 @@ flights %>%
 ```
 ## Rows: 336,776
 ## Columns: 27
-## $ year.x         <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2…
-## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
-## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, …
-## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, …
-## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1…
-## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,…
-## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,…
-## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1…
-## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "…
-## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4…
-## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394…
-## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",…
-## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",…
-## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1…
-## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, …
-## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6…
-## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0…
-## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0…
-## $ year.y         <int> 1999, 1998, 1990, 2012, 1991, 2012, 2000, 1998, 2004, N…
-## $ type           <chr> "Fixed wing multi engine", "Fixed wing multi engine", "…
-## $ manufacturer   <chr> "BOEING", "BOEING", "BOEING", "AIRBUS", "BOEING", "BOEI…
-## $ model          <chr> "737-824", "737-824", "757-223", "A320-232", "757-232",…
-## $ engines        <int> 2, 2, 2, 2, 2, 2, 2, 2, 2, NA, 2, 2, 2, 2, NA, 2, 2, 2,…
-## $ seats          <int> 149, 149, 178, 200, 178, 191, 200, 55, 200, NA, 200, 20…
-## $ speed          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
-## $ engine         <chr> "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turbo-fan", "Tu…
+## $ year.x         <int> 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2~
+## $ month          <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ day            <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1~
+## $ dep_time       <int> 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, ~
+## $ sched_dep_time <int> 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, ~
+## $ dep_delay      <dbl> 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1~
+## $ arr_time       <int> 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,~
+## $ sched_arr_time <int> 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,~
+## $ arr_delay      <dbl> 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1~
+## $ carrier        <chr> "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "~
+## $ flight         <int> 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4~
+## $ tailnum        <chr> "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394~
+## $ origin         <chr> "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",~
+## $ dest           <chr> "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",~
+## $ air_time       <dbl> 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1~
+## $ distance       <dbl> 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, ~
+## $ hour           <dbl> 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6~
+## $ minute         <dbl> 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0~
+## $ time_hour      <dttm> 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0~
+## $ year.y         <int> 1999, 1998, 1990, 2012, 1991, 2012, 2000, 1998, 2004, N~
+## $ type           <chr> "Fixed wing multi engine", "Fixed wing multi engine", "~
+## $ manufacturer   <chr> "BOEING", "BOEING", "BOEING", "AIRBUS", "BOEING", "BOEI~
+## $ model          <chr> "737-824", "737-824", "757-223", "A320-232", "757-232",~
+## $ engines        <int> 2, 2, 2, 2, 2, 2, 2, 2, 2, NA, 2, 2, 2, 2, NA, 2, 2, 2,~
+## $ seats          <int> 149, 149, 178, 200, 178, 191, 200, 55, 200, NA, 200, 20~
+## $ speed          <int> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,~
+## $ engine         <chr> "Turbo-fan", "Turbo-fan", "Turbo-fan", "Turbo-fan", "Tu~
 ```
 
 In the first code block the tables were joined by "year" and "tailnum". But this is **incorrect** because the `year` column in the `flights` table is the year of the flight, while the `year` column in the `planes` table is the year the plane was manufactured. In the second code block, the tables were joined only by `tailnum` and the two columns for year were renamed `year.x` and `year.y`, corresponding to the year of the flight and the year the plane was manufactured, respectively. It's important to be aware of the columns you are joining on and what they represent. 
 
-### Data transformation with tidyverse
+## Data transformation with tidyverse
 
 Now that we've covered the two major aspects of tidying data, that is, transforming data from wide to long and merging data from multiple tables, we can talk briefly about data transformation. In this section, we will be working with already tidy data and using various functions to pull out different information from the table. This is not meant as an exhaustive list of functions, but rather a demonstration of the types of things you can do with tidy data. 
 
@@ -1046,54 +1091,54 @@ Now that we've covered the two major aspects of tidying data, that is, transform
 You can select certain rows of a table based on boolean conditions using the `filter()` function. 
 
 
-``` r
+```r
 mpg %>% filter(manufacturer == "audi")
 ```
 
 ```
-## # A tibble: 18 × 11
+## # A tibble: 18 x 11
 ##    manufacturer model      displ  year   cyl trans drv     cty   hwy fl    class
 ##    <chr>        <chr>      <dbl> <int> <int> <chr> <chr> <int> <int> <chr> <chr>
-##  1 audi         a4           1.8  1999     4 auto… f        18    29 p     comp…
-##  2 audi         a4           1.8  1999     4 manu… f        21    29 p     comp…
-##  3 audi         a4           2    2008     4 manu… f        20    31 p     comp…
-##  4 audi         a4           2    2008     4 auto… f        21    30 p     comp…
-##  5 audi         a4           2.8  1999     6 auto… f        16    26 p     comp…
-##  6 audi         a4           2.8  1999     6 manu… f        18    26 p     comp…
-##  7 audi         a4           3.1  2008     6 auto… f        18    27 p     comp…
-##  8 audi         a4 quattro   1.8  1999     4 manu… 4        18    26 p     comp…
-##  9 audi         a4 quattro   1.8  1999     4 auto… 4        16    25 p     comp…
-## 10 audi         a4 quattro   2    2008     4 manu… 4        20    28 p     comp…
-## 11 audi         a4 quattro   2    2008     4 auto… 4        19    27 p     comp…
-## 12 audi         a4 quattro   2.8  1999     6 auto… 4        15    25 p     comp…
-## 13 audi         a4 quattro   2.8  1999     6 manu… 4        17    25 p     comp…
-## 14 audi         a4 quattro   3.1  2008     6 auto… 4        17    25 p     comp…
-## 15 audi         a4 quattro   3.1  2008     6 manu… 4        15    25 p     comp…
-## 16 audi         a6 quattro   2.8  1999     6 auto… 4        15    24 p     mids…
-## 17 audi         a6 quattro   3.1  2008     6 auto… 4        17    25 p     mids…
-## 18 audi         a6 quattro   4.2  2008     8 auto… 4        16    23 p     mids…
+##  1 audi         a4           1.8  1999     4 auto~ f        18    29 p     comp~
+##  2 audi         a4           1.8  1999     4 manu~ f        21    29 p     comp~
+##  3 audi         a4           2    2008     4 manu~ f        20    31 p     comp~
+##  4 audi         a4           2    2008     4 auto~ f        21    30 p     comp~
+##  5 audi         a4           2.8  1999     6 auto~ f        16    26 p     comp~
+##  6 audi         a4           2.8  1999     6 manu~ f        18    26 p     comp~
+##  7 audi         a4           3.1  2008     6 auto~ f        18    27 p     comp~
+##  8 audi         a4 quattro   1.8  1999     4 manu~ 4        18    26 p     comp~
+##  9 audi         a4 quattro   1.8  1999     4 auto~ 4        16    25 p     comp~
+## 10 audi         a4 quattro   2    2008     4 manu~ 4        20    28 p     comp~
+## 11 audi         a4 quattro   2    2008     4 auto~ 4        19    27 p     comp~
+## 12 audi         a4 quattro   2.8  1999     6 auto~ 4        15    25 p     comp~
+## 13 audi         a4 quattro   2.8  1999     6 manu~ 4        17    25 p     comp~
+## 14 audi         a4 quattro   3.1  2008     6 auto~ 4        17    25 p     comp~
+## 15 audi         a4 quattro   3.1  2008     6 manu~ 4        15    25 p     comp~
+## 16 audi         a6 quattro   2.8  1999     6 auto~ 4        15    24 p     mids~
+## 17 audi         a6 quattro   3.1  2008     6 auto~ 4        17    25 p     mids~
+## 18 audi         a6 quattro   4.2  2008     8 auto~ 4        16    23 p     mids~
 ```
 
 You can use multiple conditions by separating them with a comma. This is equivalent to using & to join two boolean expressions together. 
 
 
-``` r
+```r
 mpg %>% filter(manufacturer == "audi", year < 2000)
 ```
 
 ```
-## # A tibble: 9 × 11
+## # A tibble: 9 x 11
 ##   manufacturer model      displ  year   cyl trans  drv     cty   hwy fl    class
 ##   <chr>        <chr>      <dbl> <int> <int> <chr>  <chr> <int> <int> <chr> <chr>
-## 1 audi         a4           1.8  1999     4 auto(… f        18    29 p     comp…
-## 2 audi         a4           1.8  1999     4 manua… f        21    29 p     comp…
-## 3 audi         a4           2.8  1999     6 auto(… f        16    26 p     comp…
-## 4 audi         a4           2.8  1999     6 manua… f        18    26 p     comp…
-## 5 audi         a4 quattro   1.8  1999     4 manua… 4        18    26 p     comp…
-## 6 audi         a4 quattro   1.8  1999     4 auto(… 4        16    25 p     comp…
-## 7 audi         a4 quattro   2.8  1999     6 auto(… 4        15    25 p     comp…
-## 8 audi         a4 quattro   2.8  1999     6 manua… 4        17    25 p     comp…
-## 9 audi         a6 quattro   2.8  1999     6 auto(… 4        15    24 p     mids…
+## 1 audi         a4           1.8  1999     4 auto(~ f        18    29 p     comp~
+## 2 audi         a4           1.8  1999     4 manua~ f        21    29 p     comp~
+## 3 audi         a4           2.8  1999     6 auto(~ f        16    26 p     comp~
+## 4 audi         a4           2.8  1999     6 manua~ f        18    26 p     comp~
+## 5 audi         a4 quattro   1.8  1999     4 manua~ 4        18    26 p     comp~
+## 6 audi         a4 quattro   1.8  1999     4 auto(~ 4        16    25 p     comp~
+## 7 audi         a4 quattro   2.8  1999     6 auto(~ 4        15    25 p     comp~
+## 8 audi         a4 quattro   2.8  1999     6 manua~ 4        17    25 p     comp~
+## 9 audi         a6 quattro   2.8  1999     6 auto(~ 4        15    24 p     mids~
 ```
 
 ### Selecting columns
@@ -1101,12 +1146,12 @@ mpg %>% filter(manufacturer == "audi", year < 2000)
 You can select a subset of the columns in a table using the `select()` function and specifying the columns you want. 
 
 
-``` r
+```r
 mpg %>% select(manufacturer, model, year)
 ```
 
 ```
-## # A tibble: 234 × 3
+## # A tibble: 234 x 3
 ##    manufacturer model       year
 ##    <chr>        <chr>      <int>
 ##  1 audi         a4          1999
@@ -1119,18 +1164,18 @@ mpg %>% select(manufacturer, model, year)
 ##  8 audi         a4 quattro  1999
 ##  9 audi         a4 quattro  1999
 ## 10 audi         a4 quattro  2008
-## # ℹ 224 more rows
+## # i 224 more rows
 ```
 
 Another way to get the columns you want is to use the `starts_with()`, `ends_with()`, `contains()`, and `matches()` functions. 
 
 
-``` r
+```r
 weather %>% select(starts_with("wind"))
 ```
 
 ```
-## # A tibble: 26,115 × 3
+## # A tibble: 26,115 x 3
 ##    wind_dir wind_speed wind_gust
 ##       <dbl>      <dbl>     <dbl>
 ##  1      270      10.4         NA
@@ -1143,15 +1188,15 @@ weather %>% select(starts_with("wind"))
 ##  8      250      10.4         NA
 ##  9      260      15.0         NA
 ## 10      260      13.8         NA
-## # ℹ 26,105 more rows
+## # i 26,105 more rows
 ```
 
-``` r
+```r
 billboard %>% select(contains("wk"))
 ```
 
 ```
-## # A tibble: 317 × 76
+## # A tibble: 317 x 76
 ##      wk1   wk2   wk3   wk4   wk5   wk6   wk7   wk8   wk9  wk10  wk11  wk12  wk13
 ##    <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
 ##  1    87    82    72    77    87    94    99    NA    NA    NA    NA    NA    NA
@@ -1164,13 +1209,13 @@ billboard %>% select(contains("wk"))
 ##  8    84    62    51    41    38    35    35    38    38    36    37    37    38
 ##  9    59    53    38    28    21    18    16    14    12    10     9     8     6
 ## 10    76    76    74    69    68    67    61    58    57    59    66    68    61
-## # ℹ 307 more rows
-## # ℹ 63 more variables: wk14 <dbl>, wk15 <dbl>, wk16 <dbl>, wk17 <dbl>,
+## # i 307 more rows
+## # i 63 more variables: wk14 <dbl>, wk15 <dbl>, wk16 <dbl>, wk17 <dbl>,
 ## #   wk18 <dbl>, wk19 <dbl>, wk20 <dbl>, wk21 <dbl>, wk22 <dbl>, wk23 <dbl>,
 ## #   wk24 <dbl>, wk25 <dbl>, wk26 <dbl>, wk27 <dbl>, wk28 <dbl>, wk29 <dbl>,
 ## #   wk30 <dbl>, wk31 <dbl>, wk32 <dbl>, wk33 <dbl>, wk34 <dbl>, wk35 <dbl>,
 ## #   wk36 <dbl>, wk37 <dbl>, wk38 <dbl>, wk39 <dbl>, wk40 <dbl>, wk41 <dbl>,
-## #   wk42 <dbl>, wk43 <dbl>, wk44 <dbl>, wk45 <dbl>, wk46 <dbl>, wk47 <dbl>, …
+## #   wk42 <dbl>, wk43 <dbl>, wk44 <dbl>, wk45 <dbl>, wk46 <dbl>, wk47 <dbl>, ...
 ```
 
 ### Adding new columns/variables with `mutate()`
@@ -1184,14 +1229,14 @@ mutate(data, new_column_name = operation)
 When you perform operations on existing columns, you don't need to use the `$` operator to access the columns. 
 
 
-``` r
+```r
 flights %>% 
   mutate(avg_speed = distance / air_time * 60,
          gain = dep_delay - arr_delay)
 ```
 
 ```
-## # A tibble: 336,776 × 21
+## # A tibble: 336,776 x 21
 ##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
 ##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
 ##  1  2013     1     1      517            515         2      830            819
@@ -1204,8 +1249,8 @@ flights %>%
 ##  8  2013     1     1      557            600        -3      709            723
 ##  9  2013     1     1      557            600        -3      838            846
 ## 10  2013     1     1      558            600        -2      753            745
-## # ℹ 336,766 more rows
-## # ℹ 13 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
+## # i 336,766 more rows
+## # i 13 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
 ## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
 ## #   hour <dbl>, minute <dbl>, time_hour <dttm>, avg_speed <dbl>, gain <dbl>
 ```
@@ -1213,7 +1258,7 @@ flights %>%
 >**Exercise**: Read the code below and see if you can work out what each line is doing
 
 
-``` r
+```r
 mpg %>% 
   filter(manufacturer == "audi") %>% 
   mutate(avg_mpg = (cty + hwy) / 2) %>%
@@ -1221,7 +1266,7 @@ mpg %>%
 ```
 
 ```
-## # A tibble: 18 × 4
+## # A tibble: 18 x 4
 ##    manufacturer model       year avg_mpg
 ##    <chr>        <chr>      <int>   <dbl>
 ##  1 audi         a4          1999    23.5
@@ -1251,14 +1296,14 @@ One of the most common things we want to do is summarize data by groups. For exa
 In the code below, we want to calculate for each unique value of `manufacturer`, the number of unique values of `model`. So we group by `manufacturer` and then summarize the number of distinct values of `model`. The operation we perform inside the `summarize` function is `n_distinct()`, which counts the number of unique values in a column. 
 
 
-``` r
+```r
 mpg %>% 
   group_by(manufacturer) %>%
   summarize(n_distinct(model))
 ```
 
 ```
-## # A tibble: 15 × 2
+## # A tibble: 15 x 2
 ##    manufacturer `n_distinct(model)`
 ##    <chr>                      <int>
 ##  1 audi                           3
@@ -1281,12 +1326,12 @@ mpg %>%
 This is what it would look like if we didn't group_by first. We get the total number of unique values of `model` in the entire dataset. 
 
 
-``` r
+```r
 mpg %>% summarise(n_distinct(model))
 ```
 
 ```
-## # A tibble: 1 × 1
+## # A tibble: 1 x 1
 ##   `n_distinct(model)`
 ##                 <int>
 ## 1                  38
@@ -1295,7 +1340,7 @@ mpg %>% summarise(n_distinct(model))
 Here is another example where we calculate the average departure delay for each airline. We also use the `left_join()` function to merge the `airlines` table with the `flights` table. 
 
 
-``` r
+```r
 flights %>% 
   group_by(carrier) %>% 
   summarize(avg_delay = mean(dep_delay, na.rm = TRUE)) %>% 
@@ -1303,7 +1348,7 @@ flights %>%
 ```
 
 ```
-## # A tibble: 16 × 3
+## # A tibble: 16 x 3
 ##    carrier avg_delay name                       
 ##    <chr>       <dbl> <chr>                      
 ##  1 9E          16.7  Endeavor Air Inc.          
@@ -1327,7 +1372,7 @@ flights %>%
 >**Exercise**: Assuming that any flight with `NA` in the `dep_time` column is a cancelled flight, how would you calculate the number of cancelled flights for each airport? What would you group by and what would you summarize? (don't worry about the actual function names)
 
 
-``` r
+```r
 flights %>% 
   group_by(origin) %>% 
   summarize(n_cancelled = sum(is.na(dep_time))) %>% 
@@ -1335,12 +1380,12 @@ flights %>%
 ```
 
 ```
-## # A tibble: 3 × 9
+## # A tibble: 3 x 9
 ##   origin n_cancelled name                  lat   lon   alt    tz dst   tzone    
 ##   <chr>        <int> <chr>               <dbl> <dbl> <dbl> <dbl> <chr> <chr>    
-## 1 EWR           3239 Newark Liberty Intl  40.7 -74.2    18    -5 A     America/…
-## 2 JFK           1863 John F Kennedy Intl  40.6 -73.8    13    -5 A     America/…
-## 3 LGA           3153 La Guardia           40.8 -73.9    22    -5 A     America/…
+## 1 EWR           3239 Newark Liberty Intl  40.7 -74.2    18    -5 A     America/~
+## 2 JFK           1863 John F Kennedy Intl  40.6 -73.8    13    -5 A     America/~
+## 3 LGA           3153 La Guardia           40.8 -73.9    22    -5 A     America/~
 ```
 
 ## Putting it all together
@@ -1348,8 +1393,8 @@ flights %>%
 As a summary, here is an example of how you might use all the functions we've learned today to find out differences in weather conditions for cancelled flights out of JFK. 
 
 
-``` r
-# Find out the weather condition of cancelled flights from JFK
+```r
+## Find out the weather condition of cancelled flights from JFK
 flights %>% 
   filter(origin=="JFK") %>% 
   left_join(weather, by = c("origin", "time_hour")) %>% 
@@ -1359,7 +1404,7 @@ flights %>%
 ```
 
 ```
-## # A tibble: 2 × 5
+## # A tibble: 2 x 5
 ##   cancelled      n wind_speed wind_gust  precip
 ##   <lgl>      <int>      <dbl>     <dbl>   <dbl>
 ## 1 FALSE     109416       12.2      27.5 0.00357
