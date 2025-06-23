@@ -1,7 +1,10 @@
 ---
 title: "Harvard Informatics R Tidyverse Workshop"
 date: "Fall, 2024"
-author: "Lei Ma, Adam Freedman, Gregg Thomas"
+authors: 
+  - Lei Ma
+  - Adam Freedman
+  - Gregg Thomas
 output: 
   html_document:
     keep_md: true
