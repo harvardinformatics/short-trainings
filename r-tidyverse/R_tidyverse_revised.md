@@ -1,5 +1,5 @@
 ---
-title: "[Short Training] Data transformation in R with tidyverse"
+title: "[Short Training] R tidyverse"
 description: " A brief introduction to data manipulation in R using the tidyverse family of packages."
 date: "Fall, 2024"
 authors: 
