@@ -1,5 +1,6 @@
 ---
-title: "Harvard Informatics R Tidyverse Workshop"
+title: "[Short Training] Data transformation in R with tidyverse"
+description: " A brief introduction to data manipulation in R using the tidyverse family of packages."
 date: "Fall, 2024"
 authors: 
   - Lei Ma
@@ -9,6 +10,8 @@ output:
   html_document:
     keep_md: true
 ---
+
+# Data transformation in R with tidyverse
 
 ## R, RStudio, and R Markdown
 

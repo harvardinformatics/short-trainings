@@ -1,5 +1,6 @@
 ---
-title: "Harvard Informatics R ggplot Workshop"
+title: "[Short Training] Plotting in R with ggplot"
+description: "A brief introduction to data visualiztion in R with ggplot."
 date: "Fall, 2024"
 authors: 
   - Lei Ma
@@ -10,7 +11,7 @@ output:
     keep_md: true
 ---
 
-
+# Plotting in R with ggplot
 
 ## R, RStudio, and R Markdown
 
