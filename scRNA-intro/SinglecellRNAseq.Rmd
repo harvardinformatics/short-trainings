@@ -1,7 +1,7 @@
 ---
 title: "Harvard Informatics scRNA-seq workshop"
 author: "Adam Freedman and Tim Sackton"
-date: "Fall, 2024"
+date: "Fall, 2025"
 output:
   html_document:
     keep_md: true
@@ -70,8 +70,6 @@ Pacific Biosciences (PacBio) and Oxford Nanopore Technologies (ONT) have recentl
 * The PacBio MAS-Seq method is described in [Al'Khafaji et al. 2024, Nature Biotechnology](https://www.nature.com/articles/s41587-023-01815-7), with workflow instructions for generating expression matrices can be found [here](https://isoseq.how/).
 * Similarly, ONT has a nextflow workflow that we have implemented successfully on the Cannon cluster that is detailed [here](https://github.com/epi2me-labs/wf-single-cell). 
 
-### Which method works the best?
-I am currently conducting an internal study for the Bauer Core comparing the performance of these two technologies with outputs from Illumina sequencing of 10x 3' scRNAseq libraries ... stay tuned for more information regarding that! Ultimately, which approach is best for your research needs may hinge on whether you aim to produce isoform-resolved expression information.
 
 ## Artefacts requiring data cleaning
 Despite major advances in scRNA-seq library preparation and sequencing, there remain technical aspects of the technology that generate artefacts and noise that need to be cleaned up prior to conducting any downstream analyses. In an ideal world, each gel droplet from which a sequencing library is constructed will contain a single intact cell and no contaminant RNA. In reality, there are common deviations from that ideal world:
@@ -84,13 +82,21 @@ Despite major advances in scRNA-seq library preparation and sequencing, there re
 
 In summary one can observe:  
 
-* Droplets with a single, high-quality cell (and some degree of ambient RNA)  
+* Droplets with a single, high-quality cell  
 * Empty wells without a cell, with the cell-level library component built from free RNA  
 * Droplets containing > 1 cell: 2 cells = "doublets", > 2 cells = "multiplets"  
   * doublets and multiplets with > 1 cell type are more problematic than same-type multiplets  
 * Degraded low-quality cells will lead to elevated mtDNA sequence fractions
+* ambient RNA found across all droplets--both those that are empty and those that contain
+  * for droplets containing cells, this ambient RNA does not originate from the cells in the droplet
 
-**An ideal workflow would thus, filter out empty "cells", remove ambient RNA contamination effects from counts, and remove doublets/multiplets before proceeding with any downstream normalization, clustering, marker gene identification or other biologically informative analyses.**
+**An ideal workflow would thus:**
+* filter out empty "cells"
+* remove ambient RNA contamination effects from counts
+* remove doublets/multiplets
+* remove droplets that contain low-quality data, e.g. those that contain cells that were already dying/lysing during library preparation
+
+**These filtering steps must be conducted before proceeding with any downstream normalization, clustering, marker gene identification or other biologically informative analyses.**
 
 ## Base-level QC metrics
 Typical metrics reported as part of *cellranger count* or other instrument-related software include:  
@@ -136,6 +142,7 @@ if (!require("BiocManager", quietly = TRUE))
 
 BiocManager::install("glmGamPoi")  
 ```
+
 #### library load
 ```{r,echo=FALSE}
 library(Seurat)
@@ -172,7 +179,7 @@ dim(sc_data_filtered)
 there are 33694 genes an 4340 cells in the data set.
 
 ### Preliminary setup of Seurat data structures
-We are using [SoupX]() to detect and correct counts for contamination for ambient RNA. Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
+We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6049831) to detect and correct counts for contamination for ambient RNA. Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
 
 #### Initialzing the Seurat object, and performing clustering analysis
 ```{r}
@@ -186,8 +193,8 @@ seurat_obj <- FindClusters(seurat_obj)
 ```
 #### make UMAP plot of data without ambient RNA decontamination
 ```{r}
-withambient_umap_plot<-DimPlot(seurat_obj, label = TRUE) + ggtitle("Unfiltered")
-withambient_umap_plot
+unfiltered_umap_plot<-DimPlot(seurat_obj, label = TRUE) + ggtitle("Unfiltered")
+unfiltered_umap_plot
 ```
 
 
@@ -248,44 +255,114 @@ nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_p
 plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
 ```
 
-While it might take more thought to figure out where one should truly set thresholds for particular values, we can calculate the 5% and 95% quantiles for the number of features, and the 95% quantile for percent of mtDNA RNAs to set thresholds for filtering. Remember, prior to any filtering on  these cell-level statistics, our expression object contained 49105 features across 4340 cells.
+### Doublet removal
+From a recent review, the top-performing doublet detection method was found to be [scDblFinder](https://f1000research.com/articles/10-979/v2). Like most doublet detection methods, *scDblFinder* simulates doublets, performs dimensionality reduction on the joint (simulated doublets + real data), and classifies droplets as singlets or multiplets based upon their neighborhood relationships with simulated doublets in the low-dimensional embedding space: cells with many simulated doublet neighbors are classified as doublets, those distant from the simulated doublets in that space are classified as singlets.
+
+*scDblFinder* cannot take a *seruat* object as input. The object must first be converted to a `SingleCellExperiment` object.
+
+#### convert to an SCE
 ```{r}
-nfeatures_lower<-quantile(violindata$nFeature_RNA, 0.05)
-nfeatures_upper<-quantile(violindata$nFeature_RNA, 0.95)
-mtdna_upper<-quantile(violindata$percent.mt, 0.95)
-nfeatures_upper
-nfeatures_lower
-mtdna_upper
-seurat_obj_filt<-subset(seurat_obj_filt, subset = nFeature_RNA > nfeatures_lower & nFeature_RNA < nfeatures_upper & percent.mt < mtdna_upper)
-seurat_obj_filt
+sce_obj_filt <- as.SingleCellExperiment(seurat_obj_filt)
 ```
-We reduced the data set to 3721 cells,filtering out approximately 14% of the input cells. We can now perform clustering on the filtered data.
+
+#### run scDblFinder
+*scDblFinder* has parameter options you can change, and particularly relevant is `dbr`, which is the expected doublet rate. However, the developers indicate *"For 10x data, it is usually safe to leave the dbr empty, and it will be automatically estimated. (If using a chip other than the standard 10X, you might have to adjust it or the related dbr.per1k argument."*
+
+```{r}
+sce_obj_filt <- scDblFinder(sce_obj_filt)
+```
+
+The doublet classification information is now stored in `scDblFinder.class` in the SCE object.
+
+```{r}
+head(colData(sce_obj_filt))
+```
+Three types of information are provided on droplets:
+1. *scDblFinder.class*, the classification of the droplet *scDblFinder* made
+2. *scDblFinder.score*, the proportion of nearest-neighbor cells that are simulated doublets, i.e. an estimate of the probability that the cell is a doublet
+3. *scDblFinder.weighted*, an adjusted version of the *scDblFinder.score* that accounts for the estimated doublet rate.
+
+If desired, the scores faciliate fine-grained tuning of thresholds after iterations of data exploration. For the purposes of this workshop, we will simply add the *scDblFinder.class* data to the seurat object and filter in on that classification.
+
+```{r}
+seurat_obj_filt$scDblFinder.class <- colData(sce_obj_filt)$scDblFinder.class
+seurat_obj_filt_singlets <- subset(seurat_obj_filt, subset = scDblFinder.class == "singlet")
+cat(paste("The number of cells before doublet removal: ",dim(seurat_obj_filt)[2],"\n"))
+cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_singlets)[2]))
+```
+
+### post hoc filtering
+While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular
+* doublets that did not get flagged by *scDblFinder*
+* low quality or dying cells
+* droplets that by virtue of the stochastic nature of sequencing generated few UMIs and contained few detectable genes
+
+Low quality cells are often indicated by both low UMI (and feature) counts, particularly after ambient RNA removal, and a high percentage of UMIs assigned to mtDNA genes.
+
+There are two approaches for post hoc filtering:
+1. outlier detection, and
+2. manual thresholding
+
+#### outlier detection
+Following the [Orchestrating Single-Cell Analysis with Bioconductor, aka OSCA](https://bioconductor.org/books/release/OSCA/), for outlier detection we perform adaptive filtering using the median absolute deviation (MAD) statistic, filtering out:
+* cells with  % mtDNA > 3 MADs above the median
+* cells with UMI count > 3 MADs below the median
+* cells with gene count > 3 MADs below the median
+
+For the seurat object, we have to:
+* convert it to an *SingleCellExperiment* object
+* get list of mtDNA genes (which we've already done)
+* call `perCellQCMetrics`
+* flag cells that are > 3 MADs above the median mtDNA % using the `isOutlier` function
+* filter out cells that are flagged with `isOutlier`
+* add log-normalized counts to the object
+  * this is done because the `as.Seurat` function that converts an SCE looks for these counts in the data slot and will throw an error if it can't find them
+* convert the SCE back to a seurat object
+
+```{r}
+sce_filt_singlets <-as.SingleCellExperiment(seurat_obj_filt_singlets)
+mito_genes <- grep("^mt-", rownames(seurat_obj_filt_singlets), value = TRUE)
+qc <- perCellQCMetrics(sce_filt_singlets, subsets = list(Mito = mito_genes))
+# 1. High %mtDNA outliers
+high_mito <- isOutlier(qc$subsets_Mito_percent, type = "higher") # TRUE for outliers (high %mtDNA)
+cat(paste("The number of cells with high mtDNA %: ",sum(high_mito)))
+# 2. Low UMI count outliers (library size is 'sum')
+low_counts <- isOutlier(qc$sum, type = "lower") # TRUE for outliers (low total UMI count)
+cat(paste("The number of cells with low UMI counts %: ",sum(low_counts)))
+# 3. Low feature count outliers ('detected')
+low_features <- isOutlier(qc$detected, type = "lower") # TRUE for outliers (low detected features)
+cat(paste("The number of cells with low # of genes recovered %: ",sum(low_features)))
+```
+
+While this data set did not contain any statistically detectable outliers based upon MAD, if they had been detected, one would proceed as follows:
+```{r,eval=FALSE}
+discard <- high_mito | low_counts | low_features
+cells_to_keep <- colnames(seurat_obj_filt_singlets)[!discard]
+seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_keep)
+```
+
+One can then apply additional manual filters that typically used.
+```{r}
+seurat_obj_filt_singlets_posthocfilt <- subset(seurat_obj_filt_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
+```
+
+We reduced the data set to 3612 cells,filtering out approximately 17% of the input cells. We can now perform clustering on the filtered data.
 
 ### Re-running clustering with corrected data
 
 ```{r}
-seurat_obj_filt <- SCTransform(seurat_obj_filt, vars.to.regress = "percent.mt", verbose = FALSE)
-seurat_obj_filt <- RunPCA(seurat_obj_filt, verbose = FALSE)
-seurat_obj_filt <- RunUMAP(seurat_obj_filt, dims = 1:30)
-seurat_obj_filt <- FindNeighbors(seurat_obj_filt, dims = 1:30)
-seurat_obj_filt <- FindClusters(seurat_obj_filt)
+seurat_obj_filt_singlets_posthocfilt <- SCTransform(seurat_obj_filt_singlets_posthocfilt, vars.to.regress = "percent.mt", verbose = FALSE)
+seurat_obj_filt_singlets_posthocfilt <- RunPCA(seurat_obj_filt_singlets_posthocfilt, verbose = FALSE)
+seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)
+seurat_obj_filt_singlets_posthocfilt <- FindNeighbors(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)
+seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_posthocfilt)
 ```
-#### make UMAP plot of data without and with ambient RNA decontamination
+#### make UMAP plot of filtered data
 ```{r}
-withoutambient_umap_plot<-DimPlot(seurat_obj_filt, label = TRUE) + ggtitle("Filtered")
-plot_grid(withambient_umap_plot,withoutambient_umap_plot,ncol=2,nrow=1)
+filtered_umap_plot<-DimPlot(seurat_obj_filt_singlets_posthocfilt, label = TRUE) + ggtitle("Filtered")
+plot_grid(unfiltered_umap_plot,filtered_umap_plot,ncol=2,nrow=1)
 ```
-
-#### construct heatmap of jaccard distances between clustering results
-```{r}
-clusters_unfiltered<-tibble(cellbarcode=row.names(seurat_obj@meta.data),clusterid_unfiltered=seurat_obj@meta.data$seurat_clusters)
-clusters_filtered<-tibble(cellbarcode=row.names(seurat_obj_filt@meta.data),clusterid_filtered=seurat_obj_filt@meta.data$seurat_clusters)
-clusters_merged <- full_join(clusters_unfiltered,clusters_filtered,by="cellbarcode")
-
-unique_unfilt <- unique(clusters_merged$clusterid_unfiltered)
-unique_filt <- unique(clusters_merged$clusterid_filtered)
-```
-
+### cluster similarity heatmap
 ```{r}
 # Define the Jaccard similarity function
 jaccard_similarity <- function(set1, set2) {
@@ -293,15 +370,26 @@ jaccard_similarity <- function(set1, set2) {
   union_length <- length(set1) + length(set2) - intersect_length
   return((intersect_length / union_length))
 }
+```
 
-# Precompute indices for each cluster to avoid recalculating
-unfilt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_unfiltered)
-filt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_filtered)
+```{r}
+clusters_unfilt<-tibble(cellbarcode=row.names(seurat_obj@meta.data),clusterid_unfilt=seurat_obj@meta.data$seurat_clusters)
+clusters_filt<-tibble(cellbarcode=row.names(seurat_obj_filt_singlets_posthocfilt@meta.data),clusterid_filt=seurat_obj_filt_singlets_posthocfilt@meta.data$seurat_clusters)
 
-# Create an empty list to store results
+clusters_merged <- full_join(clusters_unfilt,clusters_filt,by="cellbarcode")
+unique_unfilt <- unique(clusters_merged$clusterid_unfilt)
+unique_filt <- unique(clusters_merged$clusterid_filt)
+```
+
+```{r}
+##### Precompute indices for each cluster to avoid recalculating
+unfilt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_unfilt)
+filt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_filt)
+
+##### Create an empty list to store results
 jaccard_list <- list()
 
-# Calculate Jaccard distances and store them directly in a list
+##### Calculate Jaccard distances and store them directly in a list
 for (i in names(unfilt_indices)) {
   for (j in names(filt_indices)) {
     set1 <- unfilt_indices[[i]]
@@ -310,84 +398,43 @@ for (i in names(unfilt_indices)) {
     
     # Append result as a named list
     jaccard_list[[length(jaccard_list) + 1]] <- list(
-      unfiltered = i,
-      filtered = j,
+      unfilt = i,
+      filt = j,
       jaccard_similarity = similarity
     )
   }
 }
 
-# Convert the list to a data frame
+#### Convert the list to a data frame
 jaccard_df <- do.call(rbind, lapply(jaccard_list, as.data.frame))
 
-# Convert columns to appropriate types
+#### Convert columns to appropriate types
 jaccard_df <- type.convert(jaccard_df, as.is = TRUE)
+```
 
-# Display the resulting data frame
-print(jaccard_df)
-
-# make heatmap of jaccard similarities
-jaccard_heatmap_plot<- ggplot(data = jaccard_df, aes(unfiltered, filtered, fill = jaccard_similarity)) +
-  geom_tile() +
-  theme_classic() +
-  scale_fill_gradient(low = "white", high = "red") +
-  scale_y_continuous(breaks=seq(0,13,1)) +
-  scale_x_continuous(breaks=seq(0,15,1)) +
-  labs(title = "Jaccard Similarity Heatmap",
-       x = "Clusters in unfiltered data",
-       y = "Clusters in filtered data",
-       fill = "Jaccard Similarity") +
+#### make heatmap of jaccard similarities
+```{r}
+unfiltVsfilt_heatmap_plot <- ggplot(data = jaccard_df, aes(unfilt, filt, fill = jaccard_similarity)) +
+  geom_tile(color="black") +
+  #theme_classic() +
+  scale_fill_gradient(low ="white",high = "firebrick",breaks=seq(0,1,0.2)) +
+  scale_y_continuous(breaks=seq(0,sum(is.na(unique_filt)==FALSE)-1,1)) +
+  scale_x_continuous(breaks=seq(0,sum(is.na(unique_unfilt)==FALSE)-1,1)) +
+  labs(title = "droputils vs. 10x",fill = "Jaccard Similarity") +
+  xlab("Unfiltered clusters") +
+  ylab("Filtered clusters") +
   theme_minimal() +
-  theme(panel.grid.major = element_blank())
-jaccard_heatmap_plot
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank()   # Remove any panel background color
+  ) +
+  theme(axis.text.x = element_text(size=10),axis.text.y = element_text(size=10)) +
+   theme(
+  axis.text.x = element_text(margin = margin(t = -8)),  # Move x-axis labels closer
+  axis.text.y = element_text(margin = margin(r = -12))   # Move y-axis labels closer
+) +
+theme(axis.title.x=element_text(size=14),axis.title.y=element_text(size=14))
+unfiltVsfilt_heatmap_plot
 ```
-
-### Looking into variable features
-The `SCTransform()` function wraps `NormalizeData()`, `ScaleData()`, and `FindVariableFeatures()`, functions that had to be called separately as part of the orignal, standard Seurat workflow. Thus one can directly go to looking at marker genes. 
-
-#### Get top 10 variable features and plot by cluster distributions
-```{r}
-top10<-VariableFeatures(seurat_obj_filt,nfeatures=10)
-top10
-VlnPlot(seurat_obj_filt, features =top10, pt.size = 0.2,stack=TRUE)
-```
-#### Similarly, one can select a priori known marker genes
-```{r}
-VlnPlot(seurat_obj_filt, features = c("CD8A", "GZMK", "CCL5", "S100A4", "ANXA1", "CCR7", "ISG15", "CD3D"),pt.size = 0.2, ncol = 4)
-```
-
-**Note**: when > 2 rows, as with the top 10 genes, the individual get compressed and the violins can't be easily seen. It would be fairly simple to extract the SCTransform-ed counts to a data frame, and left join that data to the meta.data table that specifies cluster id for each cell barcode, and built your own plot with ggplot.
-
-
-### Finding marker genes
-Of course, when you don't have or don't want to rely on prior information, it is useful to identify marker genes from the data. This essentially performs differential expression tests that look for differential expression between specified clusters. A few examples are illustrative:
-
-##### Find all markers for cluster 5
-In this case, marker genes are identified by looking for DE between cluster 5 and the aggregation of all other clusters
-```{r}
-cluster2.markers <- FindMarkers(seurat_obj_filt, ident.1 = 5)
-head(cluster2.markers, n = 5)
-```
-In this case, *pct.1* and *pct.2* are the percentage of cells expressing the gene in the two clusters: the target cluster, specified by `ident.1`, and the cells from all other clusters. 
-
-##### Find marker genes that distinguish the the two large groups of clusters in the UMAP plot
-```{r}
-clustergroup_markers <- FindMarkers(seurat_obj_filt, ident.1 = c(1,2,3,4,5,10,11), ident.2 = c(6, 8,9))
-head(clustergroup_markers, n = 5)
-```
-In this case, the first 5 reported genes are down-regulated in clusters 1,2,3,4,5,10,and 11 relative to clusters 6, 8 and 9.
-
-##### Find all cell-type specific markers
-We can add `only.pos=TRUE` to indicate we only want to see genes that are up-regulated in the cell type of interest, and we can also filter the table downstream to only include genes with logfold change < 1. We won't run this today as it will take a bit of time, but at least you can see the underlying logic of it.
-
-```{r,eval=FALSE}
-celltype.markers <- FindAllMarkers(seurat_obj_filt, only.pos = TRUE)
-lfcGthan1_celltype.markers <- celltype.markers %>%
-    group_by(cluster) %>%
-    filter(avg_log2FC > 1)
-head(lfcGthan1_celltype.markers)
-```
-
-## Future directions
-For many researchers, there will be an interest in comparing multiple samples that represent different treatments or environmental. conditions to which the organism from which the scRNA-seq library was constructed is exposed. Check out the Seurat tutorial on multi-sample integration [here](https://satijalab.org/seurat/articles/integration_introduction). Secondly, we also suggest checking out the Heumos et al. paper (link above) which integrates information from various tool performance studies and highlights in great detail steps and options for constructing an scRNA-seq workflow. While we did not include doublet detection and removal in this workflow example, it should be integrated into your workflows, so again, consult Heumos et al. for a summary of the best tools for the task. It is worth noting that [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder) is implemented to work with Seurat.
 
