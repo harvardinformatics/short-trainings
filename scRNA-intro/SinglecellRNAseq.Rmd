@@ -363,6 +363,11 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 seurat_obj_filt_singlets_posthocfilt <- FindNeighbors(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)
 seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_posthocfilt)
 ```
+### save the filtered Seurat object for part 2 of workshop
+```{r}
+saveRDS(seurat_obj_filt_singlets_posthocfilt, file = "pbmc4k_seurat_obj_filt_singlets_posthocfilt.rds")
+```
+
 #### make UMAP plot of filtered data
 ```{r}
 filtered_umap_plot<-DimPlot(seurat_obj_filt_singlets_posthocfilt, label = TRUE) + ggtitle("Filtered")

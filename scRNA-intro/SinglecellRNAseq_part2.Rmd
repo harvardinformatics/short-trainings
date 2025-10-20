@@ -1,0 +1,177 @@
+---
+title: "Harvard Informatics scRNA-seq workshop: part 2"
+author: "Adam Freedman and Tim Sackton"
+date: "Fall, 2025"
+output:
+  html_document:
+    keep_md: true
+  pdf_document: default
+---
+
+# Introduction to single-cell RNAseq: part2: moving beyond clustering
+
+**Welcome to part 2 of the workshop on single-cell RNA-seq!**
+
+## Recap of part 1
+
+In part 1 we we covered:
+* Potential benefits of scRNAseq over bulk RNAseq analysis
+* Current sequencing technologies (all available at the Bauer Core)
+* Artefacts requiring data cleaning
+* Base-level QC metrics: stuff reported from instrument-associated software
+* scRNAseq data structures
+  * sparse matrices, cell barcode and feature tableszero-inflation
+* Loading data with the R package Seurat
+* Data processing,filtering, and clustering
+
+Specifically with respect to data pre-processing and clustering using a publicly available human PBMC data set as an example, we:
+* created Seurat objects for our raw and unfiiltered count matrices
+* in Seurat, normalized the filtered counts with the SCTransform method
+* did a preliminary clustering of cells in the filtered data
+* removed ambient RNA contamination with *SoupX*, taking as input
+  * raw counts
+  * filtered counts
+  * provisional clusters from the filtered Seurat object
+* removed doublets with scDblFinder
+* did threshold-based removal of low UMI count, low feature (gene) count, and high mtDNA% cells
+
+Today, we will cover the following:
+* using the PBMC dataset, demonstrate how to identify marker genes for cell clusters
+* demonstrate one approach for annotating cell types in the PBMC data set using a reference database
+* multi-sample analysis using mouse brain data
+  * accounting for batch effects
+    * simple merging versus formal integration of samples
+      * metrics for determining whether integration is necessary
+  * differential expression analysis within cell clusters across conditions
+
+## R library loading
+The R markdown (Rmd) file from part 1 demonstrated how to intsall all the relevant packages
+
+#### library loading
+```{r,echo=FALSE}
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(tidyverse)
+library(SoupX)
+library(cowplot)
+library(glmGamPoi)
+library(scDblFinder)
+library(scater)
+```
+
+```{r}
+BiocManager::install("SingleR")
+BiocManager::install("celldex")
+BiocManager::install("ExperimentHub")
+library(SingleR)
+library(celldex)
+data_dir=getwd()
+setwd(data_dir)
+```
+
+## Marker gene discovery
+For much of the history of scRNA-seq, a standard part of data analysis workflows has been the identification of genes that are canonical markers for cell clusters. Lists of marker genes are a necessary prerequisite for any attempt at manual annotation of clusters, e.g. if you have prior information that a set of genes are highly up-regulated in a particular cell type--information obtained from, for example, bulk RNA-seq on sorted cells of that type--one can provisionally infer that a cluster of cells within similar up-regulation of that set of genes belong to that cell type. Detecting marker genes for clusters involves performing tests of differential expression between sets of cells of interest. Detecting marker genes for a particular cluster involves treating cells as replicates and testing for differential expression between cells in the cluster of interest and all other cells. To demonstrate this, we will load up the filtered *pbmc* Seurat object we saved in part 1 of this workshop:
+
+```{r}
+pbmc_filtered_seurat <- readRDS("data/pbmc/pbmc4k_seurat_obj_filt_singlets_posthocfilt.rds")
+filtered_umap_plot<-DimPlot(pbmc_filtered_seurat, label = TRUE) + ggtitle("Filtered")
+filtered_umap_plot
+```
+### Find all marker genes for cluster 8
+In this case, marker genes are identified by looking for DE between cluster 8 and the aggregation of all other clusters. With Seurat, the standard syntax is to specify an *identity*, such that if only one is supplied, testing is done for cluster specific genes.
+
+```{r}
+cluster8.markers <- FindMarkers(pbmc_filtered_seurat, ident.1 = 8)
+head(cluster8.markers, n = 5)
+```
+
+The default DE test method is the Wilcoxon Rank Sum test, although several other methods are available. It is worth looking at the help for the `FindMarkers()` function to determine whether other changes to default settings are appropriate for your data. *pct.1* and *pct.2* specify the fraction of cells expressing the gene in cluster 8 (i.e. *ident.1*) and all other cells, respectively, and log-fold change is with cluster 8 in the numerator, i.e. positive numbers indicate upregulation in cluster 8. *p_val_adj* is the p-value adjusted for multiple comparisons using the bonferroni method. Clearly, the top 5 genes are expressed in the majority of cluster 8 cells, and very few cells from all other clusters.
+
+The above implementation of `FindMarkers()` includes genes that are both up and down-regulated in cluster 8, i.e.
+
+```{r}
+downreg_cluster8_markers <- subset(cluster8.markers,avg_log2FC<0)
+head(downreg_cluster8_markers,n=5)
+```
+One can also provide the option to only look for genes up-regulated in the cluster of interest, by supplying the `only.pos = TRUE` keyword argument in `FindMarkers()`. If one wants to simultaneously find makers for all clusters, you can instead use the `FindAllMarkers()` function. **NOTE**: this will take a lot of time to run.
+
+Finally, one can supply more than one identity to focus on genes that distinguish different clusters (or groups of clusters). Looking at our UMAP plot, we might be interested in knowing which genes have expression patterns that distinguish clusters 2 from 4:
+
+```{r}
+cluster2Vs4.markers <- FindMarkers(pbmc_filtered_seurat, ident.1 = 2, ident.2=4)
+head(cluster2Vs4.markers, n = 5)
+```
+
+or genes whose expression distinguish clusters 1 and 12 from 9:
+```{r}
+cluster1.12Vs9.markers <- FindMarkers(pbmc_filtered_seurat, ident.1 = c(1,12), ident.2=9)
+head(cluster2Vs4.markers, n = 5)
+```
+
+**REMEMBER**: what you supply to *ident.1* will be the numerator in log-fold change calculations, and will be the up-regulated cluster(s) when LFC > 0 (and the down-regulated cluster when LFC < 0).
+
+## Celltype annotation: beyond marker genes
+Manual annotation of cell clusters is a time-consuming process, that also requires a great deal of expertise. To the extent that both requiring the leveraging of considerable expertise to annotate cell types, manual annotation is not much different from creating a cell atlas! Increasingly however, annotation of cell clusters observed in scRNA-seq data can be carried out with computational tools. These tools typically take as input your expression data (in R either a Seurat or SingleCellExperiment object), and the specification of a reference. The reference data set contains expression data for individual cells and cell type labels. In other words, your data are the query which is aligned to the reference such that cell type labels can be transferred from reference cells to the query cells that share a similar expression pattern. Of course, for this approach to work, there must be consistency between the gene symbols in the query and the reference databases. 
+
+### annotating the PBMC dataset
+We will demonstrate one method `SingleR`, for annotating cells in our filtered PBMC dataset (which we have already loaded as an *Rds* object at the start of today's workshop. 
+
+
+#### load the reference data set
+The MonacoImmuneData is a comprised of normalized expression data from 114 bulk RNA-seq experimets on sorted immune cell populations, relevant for annotating immune cells such as PBMCs. We load it as follows:
+
+```{r}
+reference <- celldex::MonacoImmuneData()
+```
+
+#### bookkeeping
+We found there can be issues with running `celldex` if the cache directory doesn't exist. If loading the referenceSo, we attempt to clear the cache, and in the console type `yes` if we are informed it doesn't exist and do we want to create it:
+
+```{r,eval=FALSE}
+library(ExperimentHub)
+eh <- ExperimentHub()
+removeCache(eh)
+```
+
+
+And if you want more information, use help!
+
+```{r}
+help(MonacoImmuneData)
+```
+
+#### convert our pbmc data to an SCE object
+```{r}
+sce <- as.SingleCellExperiment(pbmc_filtered_seurat)
+```
+
+#### run SingleR
+```{r}
+pred <- SingleR(test = sce, ref = reference, labels = reference$label.main)
+```
+
+#### add predicted cell type labels to our data
+```{r}
+pbmc_filtered_seurat$SingleR.labels <- pred$labels
+table(pbmc_filtered_seurat$SingleR.labels)
+```
+
+The labels can now be accessed via:
+* `pbmc_filtered_seurat$SingleR.labels` or 
+* `pbmc_filtered_seurat@meta.data$SingleR.labels`
+
+
+### a peek at cluster labels and annotations
+```{r}
+pbmc_annots_umap<-DimPlot(pbmc_filtered_seurat, group.by = "SingleR.labels", label = FALSE) +
+  ggplot2::ggtitle("Cell annotations")
+plot_grid(filtered_umap_plot,pbmc_annots_umap,ncol=2,nrow=1)
+
+```
+
+Note that our clustering reveals finer grained subdivision than is implied simply by the cell type annnotations. This can be caused by multiple sources, including:
+* coarser resolution of the cell type reference database
+  * missing cell types
+  * not able to distinguish subtypes
+* clustering algoritm over-splitting of functional cell types 
