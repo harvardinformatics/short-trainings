@@ -170,11 +170,13 @@ plot_grid(filtered_umap_plot,pbmc_annots_umap,ncol=2,nrow=1)
 
 ```
 
-Note that our clustering reveals finer grained subdivision than is implied simply by the cell type annnotations. This can be caused by multiple sources, including:
+Note that our clustering reveals finer grained subdivision than is implied simply by the cell type annotations. This can be caused by multiple sources, including:
 * coarser resolution of the cell type reference database
   * missing cell types
   * not able to distinguish subtypes
-* clustering algoritm over-splitting of functional cell types 
+    * for example, our annotation does not specify memory and naive CD4+T subtypes
+* clustering algorithm over-splitting of functional cell types 
+
 
 ### annotation caveats and future directions 
 * building a reference database for annotating cell types is a non-trivial challenge
