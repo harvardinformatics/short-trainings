@@ -175,3 +175,10 @@ Note that our clustering reveals finer grained subdivision than is implied simpl
   * missing cell types
   * not able to distinguish subtypes
 * clustering algoritm over-splitting of functional cell types 
+
+### annotation caveats and future directions 
+* building a reference database for annotating cell types is a non-trivial challenge
+* other "current" tools may not be adequately maintained and hard to implement
+  * the Seurat Azimuth method no longer appears to work, likely due to outdated reference file specifications
+* "best practice" for cell type annotation and is an area of active development
+  * we expect that AI-based/transformer methods will likely factor prominently in the future
