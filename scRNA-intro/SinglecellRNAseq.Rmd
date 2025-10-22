@@ -88,6 +88,7 @@ In summary one can observe:
   * for droplets containing cells, this ambient RNA does not originate from the cells in the droplet
 
 **An ideal workflow would thus:**
+
 * filter out empty "cells"
 * remove ambient RNA contamination effects from counts
 * remove doublets/multiplets
@@ -110,14 +111,23 @@ Typical metrics reported as part of *cellranger count* or other instrument-relat
 </p>
 
 
-##scRNAseq data structures
+## scRNAseq data structures
 Because sequencing effort is spread across thousands of cells for which expression is estimated for tens of thousands of features, scRNAseq matrices are sparse, meaning that there are lots of small counts, and more importantly, lots of zero counts. The resulting count matrices are often referred to as "zero-inflated", leading to debate about the sources of zero-inflation, and whether the counts are in fact zero-inflated. Relevant papers to look at are [Jiang et al. 2022, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02601-5), and [Svensson 2022, *Nature Biotechnology*](https://www.nature.com/articles/s41587-019-0379-5). Wherever the consensus ultimately lands on the statistical front, pratically speaking, the count matrices are comprised of rows that represent features (either gene ids or isoform ids), and columns that represent cells.
 
 ## Constructing a workflow (at least the initial part of it!)
 
+We will walk through the workflow represented by the diagram below that takes 10x scRNA-seq *raw* and *"filtered"* count matrices output by CellRanger `count` and does further filtering and count correction.
+
+<p align="center">
+
+<img src="img/workflow.png" width="80%" height="80%"/>
+
+</p>
+
+
 ### 1. Setup
 ### automated package install
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE}
 installed_packages <- rownames(installed.packages())
 for (pkg in c("tidyverse", "patchwork", "sctransform","SoupX",
                 "cowplot")) {
@@ -135,7 +145,7 @@ BiocManager::install(c("glmGamPoi", "scDblFinder","scater"))
 ```
 
 #### library load
-```{r,echo=FALSE}
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
 library(Seurat)
 library(patchwork)
 library(sctransform)
@@ -150,7 +160,7 @@ library(scater)
 data_dir=getwd()
 ```
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,include=FALSE}
 download.file("https://cf.10xgenomics.com/samples/cell-exp/2.1.0/pbmc4k/pbmc4k_raw_gene_bc_matrices.tar.gz", 
     destfile = file.path(data_dir, "tod.tar.gz"))
 download.file("https://cf.10xgenomics.com/samples/cell-exp/2.1.0/pbmc4k/pbmc4k_filtered_gene_bc_matrices.tar.gz", 
@@ -160,7 +170,7 @@ untar(file.path(data_dir, "toc.tar.gz"), exdir = data_dir)
 ```
 
 ### Load data with Seurat 10x data loader
-```{r}
+```{r,warning=FALSE}
 sc_data_raw <- Seurat::Read10X(file.path(data.dir = data_dir,"raw_gene_bc_matrices","GRCh38"))
 sc_data_filtered <- Seurat::Read10X(file.path(data.dir = data_dir,"filtered_gene_bc_matrices","GRCh38"))                              
 ```
@@ -183,11 +193,12 @@ We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6
 * perform those calculations across all non-expressed genes and clusters, and generate a single maximum likelihood estimate of the contamination fraction
 * Use the MLE estimate of contaminant fraction, the abundance of each gene in the "soup" (including all genes, not just the cell cluster non-expressed genes), and the cell-specific library sizes to correct counts for individual cell barcodes.
 
-
-Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
+**NOTE:** Another option for ambient RNA removal is [cellbender](https://github.com/broadinstitute/CellBender), which takes a different approach from *SoupX* in that it uses a generative model of the process by which scRNA-seq is generated. In side-by-side comparisons this method has been shown to work quite well, although we have some questions about how it will perform in cases where the fit between the model and the data is not optimal. *Cellbender* is run as a command line tool that we have successfully run on the Cannon cluster. Because it take a good bit of memory and time to run, and because it cannot be run from within R, we do not use that method in today's workshop.
 
 #### Initialzing the Seurat object, and performing clustering analysis
-```{r}
+Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
+
+```{r,warning=FALSE}
 seurat_obj <- CreateSeuratObject(counts = sc_data_filtered)
 seurat_obj <- PercentageFeatureSet(seurat_obj, pattern = "^MT-", col.name = "percent.mt")
 seurat_obj <- SCTransform(seurat_obj, vars.to.regress = "percent.mt", verbose = FALSE)
@@ -197,7 +208,7 @@ seurat_obj <- FindNeighbors(seurat_obj, dims = 1:30)
 seurat_obj <- FindClusters(seurat_obj)
 ```
 #### make UMAP plot of data without ambient RNA decontamination
-```{r}
+```{r,warning=FALSE}
 unfiltered_umap_plot<-DimPlot(seurat_obj, label = TRUE) + ggtitle("Unfiltered")
 unfiltered_umap_plot
 ```
@@ -228,7 +239,8 @@ soup_channel <- setDR(soup_channel,
                 DR=Seurat::Embeddings(seurat_obj, "umap"))
 soup_channel <- autoEstCont(soup_channel)
 ```
-**NOTE:** the labelling on the above plot is slighty confusing because Bayesian methods are not used to estimate rho, the contamination fraction. The "prior" is actually the combined density of all the non-expressed gene x cell cluster estimates of the contaminant fraction, while the "posterior" is the joint likelihood function fitted to the data.
+
+The labelling on the above plot is slighty confusing because Bayesian methods are not used to estimate rho, the contamination fraction. The "prior" is actually the combined density of all the non-expressed gene x cell cluster estimates of the contaminant fraction, while the "posterior" is the joint likelihood function fitted to the data.
 
 #### Create new Seurat object with corrected counts
 We can update the counts to the corrected ones, then save the raw counts to a raw_counts attribute.
@@ -242,32 +254,13 @@ seurat_obj_filt <- CreateSeuratObject(counts = corrected_counts)
 seurat_obj_filt <- PercentageFeatureSet(seurat_obj_filt, pattern = "^MT-", col.name = "percent.mt")
 ```
 
-#### Visualize QC metrics as a violin plot
-Because clustering information is now embedded in the seurat object, it is not possible using default Seurat functions to produce a global violin plot without it being grouped by cluster id. Therefore, we can just use tidyverse functions to make some prettier plots!
-
-```{r}
-violindata<-tibble(nCount_RNA = seurat_obj_filt@meta.data$nCount_RNA, nFeature_RNA = seurat_obj_filt@meta.data$nFeature_RNA, percent.mt = seurat_obj_filt@meta.data$percent.mt)
-colnames(violindata)<-c("nCount_RNA","nFeature_RNA","percent.mt")
-ncount_violin<- violindata %>% ggplot(aes(x=1,y=nCount_RNA)) + geom_violin() + xlab("")
-nfeat_violin<- violindata %>% ggplot(aes(x=1,y=nFeature_RNA)) + geom_violin() + xlab("")
-mt_violin<- violindata %>% ggplot(aes(x=1,y=percent.mt)) + geom_violin() + xlab("")
-plot_grid(ncount_violin,nfeat_violin,mt_violin, ncol=3, nrow=1)
-```
-                  
-#### Bi-plots of metadata relevant to QC
-```{r}
-mtvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=percent.mt)) + geom_point(alpha=0.2,size=1)
-nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_point(alpha=0.2,size=1)
-plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
-```
-
 ### Doublet removal
 From a recent review, the top-performing doublet detection method was found to be [scDblFinder](https://f1000research.com/articles/10-979/v2). Like most doublet detection methods, *scDblFinder* simulates doublets, performs dimensionality reduction on the joint (simulated doublets + real data), and classifies droplets as singlets or multiplets based upon their neighborhood relationships with simulated doublets in the low-dimensional embedding space: cells with many simulated doublet neighbors are classified as doublets, those distant from the simulated doublets in that space are classified as singlets.
 
 *scDblFinder* cannot take a *seruat* object as input. The object must first be converted to a `SingleCellExperiment` object.
 
 #### convert to an SCE
-```{r}
+```{r,warning=FALSE}
 sce_obj_filt <- as.SingleCellExperiment(seurat_obj_filt)
 ```
 
@@ -283,7 +276,8 @@ The doublet classification information is now stored in `scDblFinder.class` in t
 ```{r}
 head(colData(sce_obj_filt))
 ```
-Three types of information are provided on droplets:
+Three types of information are provided on droplets: 
+
 1. *scDblFinder.class*, the classification of the droplet *scDblFinder* made
 2. *scDblFinder.score*, the proportion of nearest-neighbor cells that are simulated doublets, i.e. an estimate of the probability that the cell is a doublet
 3. *scDblFinder.weighted*, an adjusted version of the *scDblFinder.score* that accounts for the estimated doublet rate.
@@ -297,19 +291,44 @@ cat(paste("The number of cells before doublet removal: ",dim(seurat_obj_filt)[2]
 cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_singlets)[2]))
 ```
 
-### post hoc filtering
-While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular
+### post hoc filtering 
+While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular: 
+
 * doublets that did not get flagged by *scDblFinder*
 * low quality or dying cells
 * droplets that by virtue of the stochastic nature of sequencing generated few UMIs and contained few detectable genes
 
 Low quality cells are often indicated by both low UMI (and feature) counts, particularly after ambient RNA removal, and a high percentage of UMIs assigned to mtDNA genes.
 
-There are two approaches for post hoc filtering:
-1. outlier detection, and
+#### Visualize QC metrics
+Prior to filtering, it is straightforward (and useful!) to visualize UMI and feature (gene) counts and the percentage of mtDNA UMIs in droplets. For example, a large fraction of cells with high mtDNA% would indicate that a high fraction of cells may have been dying during at the commencement of library construction.
+
+Because clustering information is now embedded in the seurat object, it is not possible using default Seurat functions to produce a global violin plot without it being grouped by cluster id. Therefore, we can just use tidyverse functions to make some prettier plots!
+
+```{r}
+violindata<-tibble(nCount_RNA = seurat_obj_filt@meta.data$nCount_RNA, nFeature_RNA = seurat_obj_filt@meta.data$nFeature_RNA, percent.mt = seurat_obj_filt@meta.data$percent.mt)
+colnames(violindata)<-c("nCount_RNA","nFeature_RNA","percent.mt")
+ncount_violin<- violindata %>% ggplot(aes(x=1,y=nCount_RNA)) + geom_violin() + xlab("")
+nfeat_violin<- violindata %>% ggplot(aes(x=1,y=nFeature_RNA)) + geom_violin() + xlab("")
+mt_violin<- violindata %>% ggplot(aes(x=1,y=percent.mt)) + geom_violin() + xlab("")
+plot_grid(ncount_violin,nfeat_violin,mt_violin, ncol=3, nrow=1)
+```
+                  
+We can also make biplots of the metrics:
+
+```{r}
+mtvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=percent.mt)) + geom_point(alpha=0.2,size=1)
+nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_point(alpha=0.2,size=1)
+plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
+```
+
+There are two approaches for post hoc filtering: 
+
+1. outlier detection
 2. manual thresholding
 
 #### outlier detection
+
 Following the [Orchestrating Single-Cell Analysis with Bioconductor, aka OSCA](https://bioconductor.org/books/release/OSCA/), for outlier detection we perform adaptive filtering using the median absolute deviation (MAD) statistic, filtering out:
 * cells with  % mtDNA > 3 MADs above the median
 * cells with UMI count > 3 MADs below the median
@@ -347,7 +366,9 @@ cells_to_keep <- colnames(seurat_obj_filt_singlets)[!discard]
 seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_keep)
 ```
 
-One can then apply additional manual filters that typically used.
+#### filtering with manually set thresholds
+Beyond what outliers may have been removed with the *MAD* approach, one can then apply additional manual filters that typically used.
+
 ```{r}
 seurat_obj_filt_singlets_posthocfilt <- subset(seurat_obj_filt_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
 ```
@@ -455,7 +476,8 @@ A few notable observations can be made about the similarity plot:
 In summary, filtering matters!
 
 ## Future directions
-In our subsequent scRNA-seq workshop next week, we will dive into downstream analysis including:
+In our subsequent scRNA-seq workshop next week, we will dive into downstream analysis including: 
+
 * identifying marker genes for clusters
 * multi-sample integration
 * differential expression testing across samples

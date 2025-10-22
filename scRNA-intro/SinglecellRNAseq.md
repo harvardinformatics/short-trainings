@@ -88,6 +88,7 @@ In summary one can observe:
   * for droplets containing cells, this ambient RNA does not originate from the cells in the droplet
 
 **An ideal workflow would thus:**
+
 * filter out empty "cells"
 * remove ambient RNA contamination effects from counts
 * remove doublets/multiplets
@@ -110,10 +111,19 @@ Typical metrics reported as part of *cellranger count* or other instrument-relat
 </p>
 
 
-##scRNAseq data structures
+## scRNAseq data structures
 Because sequencing effort is spread across thousands of cells for which expression is estimated for tens of thousands of features, scRNAseq matrices are sparse, meaning that there are lots of small counts, and more importantly, lots of zero counts. The resulting count matrices are often referred to as "zero-inflated", leading to debate about the sources of zero-inflation, and whether the counts are in fact zero-inflated. Relevant papers to look at are [Jiang et al. 2022, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02601-5), and [Svensson 2022, *Nature Biotechnology*](https://www.nature.com/articles/s41587-019-0379-5). Wherever the consensus ultimately lands on the statistical front, pratically speaking, the count matrices are comprised of rows that represent features (either gene ids or isoform ids), and columns that represent cells.
 
 ## Constructing a workflow (at least the initial part of it!)
+
+We will walk through the workflow represented by the diagram below that takes 10x scRNA-seq *raw* and *"filtered"* count matrices output by CellRanger `count` and does further filtering and count correction.
+
+<p align="center">
+
+<img src="img/workflow.png" width="80%" height="80%"/>
+
+</p>
+
 
 ### 1. Setup
 ### automated package install
@@ -144,312 +154,12 @@ Because sequencing effort is spread across thousands of cells for which expressi
 ## 
 ## 
 ## Bioconductor version 3.21 (BiocManager 1.30.26), R 4.5.1 (2025-06-13)
-```
-
-```
-## Warning: package(s) not installed when version(s) same as or greater than current; use
-##   `force = TRUE` to re-install: 'glmGamPoi' 'scDblFinder' 'scater'
-```
-
-```
-## Old packages: 'systemfonts'
+## 
+## Old packages: 'promises'
 ```
 
 #### library load
 
-```
-## Loading required package: SeuratObject
-```
-
-```
-## Loading required package: sp
-```
-
-```
-## 'SeuratObject' was built under R 4.5.0 but the current version is
-## 4.5.1; it is recomended that you reinstall 'SeuratObject' as the ABI
-## for R may have changed
-```
-
-```
-## 
-## Attaching package: 'SeuratObject'
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, t
-```
-
-```
-## 
-## Attaching package: 'glmGamPoi'
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     vars
-```
-
-```
-## The following object is masked from 'package:ggplot2':
-## 
-##     vars
-```
-
-```
-## Loading required package: SingleCellExperiment
-```
-
-```
-## Loading required package: SummarizedExperiment
-```
-
-```
-## Loading required package: MatrixGenerics
-```
-
-```
-## Loading required package: matrixStats
-```
-
-```
-## 
-## Attaching package: 'matrixStats'
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     count
-```
-
-```
-## 
-## Attaching package: 'MatrixGenerics'
-```
-
-```
-## The following objects are masked from 'package:matrixStats':
-## 
-##     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
-##     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
-##     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
-##     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
-##     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
-##     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
-##     colWeightedMeans, colWeightedMedians, colWeightedSds,
-##     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
-##     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
-##     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
-##     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
-##     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
-##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
-##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
-##     rowWeightedSds, rowWeightedVars
-```
-
-```
-## Loading required package: GenomicRanges
-```
-
-```
-## Loading required package: stats4
-```
-
-```
-## Loading required package: BiocGenerics
-```
-
-```
-## Loading required package: generics
-```
-
-```
-## 
-## Attaching package: 'generics'
-```
-
-```
-## The following object is masked from 'package:sctransform':
-## 
-##     generate
-```
-
-```
-## The following object is masked from 'package:lubridate':
-## 
-##     as.difftime
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     explain
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
-##     setequal, union
-```
-
-```
-## 
-## Attaching package: 'BiocGenerics'
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     combine
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     IQR, mad, sd, var, xtabs
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
-##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
-##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
-##     unsplit, which.max, which.min
-```
-
-```
-## Loading required package: S4Vectors
-```
-
-```
-## 
-## Attaching package: 'S4Vectors'
-```
-
-```
-## The following objects are masked from 'package:lubridate':
-## 
-##     second, second<-
-```
-
-```
-## The following objects are masked from 'package:dplyr':
-## 
-##     first, rename
-```
-
-```
-## The following object is masked from 'package:tidyr':
-## 
-##     expand
-```
-
-```
-## The following object is masked from 'package:utils':
-## 
-##     findMatches
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     expand.grid, I, unname
-```
-
-```
-## Loading required package: IRanges
-```
-
-```
-## 
-## Attaching package: 'IRanges'
-```
-
-```
-## The following object is masked from 'package:sp':
-## 
-##     %over%
-```
-
-```
-## The following object is masked from 'package:lubridate':
-## 
-##     %within%
-```
-
-```
-## The following objects are masked from 'package:dplyr':
-## 
-##     collapse, desc, slice
-```
-
-```
-## The following object is masked from 'package:purrr':
-## 
-##     reduce
-```
-
-```
-## Loading required package: GenomeInfoDb
-```
-
-```
-## Loading required package: Biobase
-```
-
-```
-## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     'browseVignettes()'. To cite Bioconductor, see
-##     'citation("Biobase")', and for packages 'citation("pkgname")'.
-```
-
-```
-## 
-## Attaching package: 'Biobase'
-```
-
-```
-## The following object is masked from 'package:MatrixGenerics':
-## 
-##     rowMedians
-```
-
-```
-## The following objects are masked from 'package:matrixStats':
-## 
-##     anyMissing, rowMedians
-```
-
-```
-## 
-## Attaching package: 'SummarizedExperiment'
-```
-
-```
-## The following object is masked from 'package:Seurat':
-## 
-##     Assays
-```
-
-```
-## The following object is masked from 'package:SeuratObject':
-## 
-##     Assays
-```
-
-```
-## Loading required package: scuttle
-```
 
 
 
@@ -483,70 +193,34 @@ We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6
 * perform those calculations across all non-expressed genes and clusters, and generate a single maximum likelihood estimate of the contamination fraction
 * Use the MLE estimate of contaminant fraction, the abundance of each gene in the "soup" (including all genes, not just the cell cluster non-expressed genes), and the cell-specific library sizes to correct counts for individual cell barcodes.
 
-
-Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
+**NOTE:** Another option for ambient RNA removal is [cellbender](https://github.com/broadinstitute/CellBender), which takes a different approach from *SoupX* in that it uses a generative model of the process by which scRNA-seq is generated. In side-by-side comparisons this method has been shown to work quite well, although we have some questions about how it will perform in cases where the fit between the model and the data is not optimal. *Cellbender* is run as a command line tool that we have successfully run on the Cannon cluster. Because it take a good bit of memory and time to run, and because it cannot be run from within R, we do not use that method in today's workshop.
 
 #### Initialzing the Seurat object, and performing clustering analysis
+Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
+
 
 ``` r
 seurat_obj <- CreateSeuratObject(counts = sc_data_filtered)
-```
-
-```
-## Warning: Feature names cannot have underscores ('_'), replacing with dashes
-## ('-')
-```
-
-``` r
 seurat_obj <- PercentageFeatureSet(seurat_obj, pattern = "^MT-", col.name = "percent.mt")
 seurat_obj <- SCTransform(seurat_obj, vars.to.regress = "percent.mt", verbose = FALSE)
-```
-
-```
-## Warning: The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
-## ℹ Please use the `layer` argument instead.
-## ℹ The deprecated feature was likely used in the Seurat package.
-##   Please report the issue at <https://github.com/satijalab/seurat/issues>.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.
-```
-
-```
-## Warning: The `slot` argument of `SetAssayData()` is deprecated as of SeuratObject 5.0.0.
-## ℹ Please use the `layer` argument instead.
-## ℹ The deprecated feature was likely used in the Seurat package.
-##   Please report the issue at <https://github.com/satijalab/seurat/issues>.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.
-```
-
-``` r
 seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
 seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 ```
 
 ```
-## Warning: The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric
-## To use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'
-## This message will be shown once per session
+## 10:14:35 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 10:49:49 UMAP embedding parameters a = 0.9922 b = 1.112
+## 10:14:35 Read 4340 rows and found 30 numeric columns
 ```
 
 ```
-## 10:49:49 Read 4340 rows and found 30 numeric columns
+## 10:14:35 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 10:49:49 Using Annoy for neighbor search, n_neighbors = 30
-```
-
-```
-## 10:49:49 Building Annoy index with metric = cosine, n_trees = 50
+## 10:14:35 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -559,14 +233,14 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 
 ```
 ## **************************************************|
-## 10:49:49 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpK18Fol/file533f735ea0b
-## 10:49:49 Searching Annoy index using 1 thread, search_k = 3000
-## 10:49:50 Annoy recall = 100%
-## 10:49:50 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 10:49:51 Initializing from normalized Laplacian + noise (using RSpectra)
-## 10:49:51 Commencing optimization for 500 epochs, with 182084 positive edges
-## 10:49:51 Using rng type: pcg
-## 10:49:54 Optimization finished
+## 10:14:35 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//Rtmp1eUSG1/file162bb22cfcc19
+## 10:14:35 Searching Annoy index using 1 thread, search_k = 3000
+## 10:14:35 Annoy recall = 100%
+## 10:14:36 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 10:14:37 Initializing from normalized Laplacian + noise (using RSpectra)
+## 10:14:37 Commencing optimization for 500 epochs, with 182084 positive edges
+## 10:14:37 Using rng type: pcg
+## 10:14:40 Optimization finished
 ```
 
 ``` r
@@ -597,20 +271,6 @@ seurat_obj <- FindClusters(seurat_obj)
 
 ``` r
 unfiltered_umap_plot<-DimPlot(seurat_obj, label = TRUE) + ggtitle("Unfiltered")
-```
-
-```
-## Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
-## ℹ Please use tidy evaluation idioms with `aes()`.
-## ℹ See also `vignette("ggplot2-in-packages")` for more information.
-## ℹ The deprecated feature was likely used in the Seurat package.
-##   Please report the issue at <https://github.com/satijalab/seurat/issues>.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.
-```
-
-``` r
 unfiltered_umap_plot
 ```
 
@@ -675,7 +335,8 @@ soup_channel <- autoEstCont(soup_channel)
 ```
 
 ![](SinglecellRNAseq_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
-**NOTE:** the labelling on the above plot is slighty confusing because Bayesian methods are not used to estimate rho, the contamination fraction. The "prior" is actually the combined density of all the non-expressed gene x cell cluster estimates of the contaminant fraction, while the "posterior" is the joint likelihood function fitted to the data.
+
+The labelling on the above plot is slighty confusing because Bayesian methods are not used to estimate rho, the contamination fraction. The "prior" is actually the combined density of all the non-expressed gene x cell cluster estimates of the contaminant fraction, while the "posterior" is the joint likelihood function fitted to the data.
 
 #### Create new Seurat object with corrected counts
 We can update the counts to the corrected ones, then save the raw counts to a raw_counts attribute.
@@ -708,31 +369,6 @@ seurat_obj_filt <- CreateSeuratObject(counts = corrected_counts)
 seurat_obj_filt <- PercentageFeatureSet(seurat_obj_filt, pattern = "^MT-", col.name = "percent.mt")
 ```
 
-#### Visualize QC metrics as a violin plot
-Because clustering information is now embedded in the seurat object, it is not possible using default Seurat functions to produce a global violin plot without it being grouped by cluster id. Therefore, we can just use tidyverse functions to make some prettier plots!
-
-
-``` r
-violindata<-tibble(nCount_RNA = seurat_obj_filt@meta.data$nCount_RNA, nFeature_RNA = seurat_obj_filt@meta.data$nFeature_RNA, percent.mt = seurat_obj_filt@meta.data$percent.mt)
-colnames(violindata)<-c("nCount_RNA","nFeature_RNA","percent.mt")
-ncount_violin<- violindata %>% ggplot(aes(x=1,y=nCount_RNA)) + geom_violin() + xlab("")
-nfeat_violin<- violindata %>% ggplot(aes(x=1,y=nFeature_RNA)) + geom_violin() + xlab("")
-mt_violin<- violindata %>% ggplot(aes(x=1,y=percent.mt)) + geom_violin() + xlab("")
-plot_grid(ncount_violin,nfeat_violin,mt_violin, ncol=3, nrow=1)
-```
-
-![](SinglecellRNAseq_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
-                  
-#### Bi-plots of metadata relevant to QC
-
-``` r
-mtvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=percent.mt)) + geom_point(alpha=0.2,size=1)
-nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_point(alpha=0.2,size=1)
-plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
-```
-
-![](SinglecellRNAseq_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
-
 ### Doublet removal
 From a recent review, the top-performing doublet detection method was found to be [scDblFinder](https://f1000research.com/articles/10-979/v2). Like most doublet detection methods, *scDblFinder* simulates doublets, performs dimensionality reduction on the joint (simulated doublets + real data), and classifies droplets as singlets or multiplets based upon their neighborhood relationships with simulated doublets in the low-dimensional embedding space: cells with many simulated doublet neighbors are classified as doublets, those distant from the simulated doublets in that space are classified as singlets.
 
@@ -742,24 +378,6 @@ From a recent review, the top-performing doublet detection method was found to b
 
 ``` r
 sce_obj_filt <- as.SingleCellExperiment(seurat_obj_filt)
-```
-
-```
-## Warning: `PackageCheck()` was deprecated in SeuratObject 5.0.0.
-## ℹ Please use `rlang::check_installed()` instead.
-## ℹ The deprecated feature was likely used in the Seurat package.
-##   Please report the issue at <https://github.com/satijalab/seurat/issues>.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.
-```
-
-```
-## Warning: Layer 'data' is empty
-```
-
-```
-## Warning: Layer 'scale.data' is empty
 ```
 
 #### run scDblFinder
@@ -840,7 +458,8 @@ head(colData(sce_obj_filt))
 ## AAACCTGAGGCATGGT-1            0.0793885            0.026678087
 ## AAACCTGCAAGGTTCT-1            0.4515635            0.025072564
 ```
-Three types of information are provided on droplets:
+Three types of information are provided on droplets: 
+
 1. *scDblFinder.class*, the classification of the droplet *scDblFinder* made
 2. *scDblFinder.score*, the proportion of nearest-neighbor cells that are simulated doublets, i.e. an estimate of the probability that the cell is a doublet
 3. *scDblFinder.weighted*, an adjusted version of the *scDblFinder.score* that accounts for the estimated doublet rate.
@@ -866,19 +485,50 @@ cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_sing
 ## The number of cells after doublet removal:  4119
 ```
 
-### post hoc filtering
-While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular
+### post hoc filtering 
+While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular: 
+
 * doublets that did not get flagged by *scDblFinder*
 * low quality or dying cells
 * droplets that by virtue of the stochastic nature of sequencing generated few UMIs and contained few detectable genes
 
 Low quality cells are often indicated by both low UMI (and feature) counts, particularly after ambient RNA removal, and a high percentage of UMIs assigned to mtDNA genes.
 
-There are two approaches for post hoc filtering:
-1. outlier detection, and
+#### Visualize QC metrics
+Prior to filtering, it is straightforward (and useful!) to visualize UMI and feature (gene) counts and the percentage of mtDNA UMIs in droplets. For example, a large fraction of cells with high mtDNA% would indicate that a high fraction of cells may have been dying during at the commencement of library construction.
+
+Because clustering information is now embedded in the seurat object, it is not possible using default Seurat functions to produce a global violin plot without it being grouped by cluster id. Therefore, we can just use tidyverse functions to make some prettier plots!
+
+
+``` r
+violindata<-tibble(nCount_RNA = seurat_obj_filt@meta.data$nCount_RNA, nFeature_RNA = seurat_obj_filt@meta.data$nFeature_RNA, percent.mt = seurat_obj_filt@meta.data$percent.mt)
+colnames(violindata)<-c("nCount_RNA","nFeature_RNA","percent.mt")
+ncount_violin<- violindata %>% ggplot(aes(x=1,y=nCount_RNA)) + geom_violin() + xlab("")
+nfeat_violin<- violindata %>% ggplot(aes(x=1,y=nFeature_RNA)) + geom_violin() + xlab("")
+mt_violin<- violindata %>% ggplot(aes(x=1,y=percent.mt)) + geom_violin() + xlab("")
+plot_grid(ncount_violin,nfeat_violin,mt_violin, ncol=3, nrow=1)
+```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+                  
+We can also make biplots of the metrics:
+
+
+``` r
+mtvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=percent.mt)) + geom_point(alpha=0.2,size=1)
+nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_point(alpha=0.2,size=1)
+plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
+```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+There are two approaches for post hoc filtering: 
+
+1. outlier detection
 2. manual thresholding
 
 #### outlier detection
+
 Following the [Orchestrating Single-Cell Analysis with Bioconductor, aka OSCA](https://bioconductor.org/books/release/OSCA/), for outlier detection we perform adaptive filtering using the median absolute deviation (MAD) statistic, filtering out:
 * cells with  % mtDNA > 3 MADs above the median
 * cells with UMI count > 3 MADs below the median
@@ -947,7 +597,9 @@ cells_to_keep <- colnames(seurat_obj_filt_singlets)[!discard]
 seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_keep)
 ```
 
-One can then apply additional manual filters that typically used.
+#### filtering with manually set thresholds
+Beyond what outliers may have been removed with the *MAD* approach, one can then apply additional manual filters that typically used.
+
 
 ``` r
 seurat_obj_filt_singlets_posthocfilt <- subset(seurat_obj_filt_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
@@ -965,19 +617,19 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 ```
 
 ```
-## 10:50:25 UMAP embedding parameters a = 0.9922 b = 1.112
+## 10:15:08 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 10:50:25 Read 3612 rows and found 30 numeric columns
+## 10:15:08 Read 3612 rows and found 30 numeric columns
 ```
 
 ```
-## 10:50:25 Using Annoy for neighbor search, n_neighbors = 30
+## 10:15:08 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 10:50:25 Building Annoy index with metric = cosine, n_trees = 50
+## 10:15:08 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -990,14 +642,14 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 
 ```
 ## **************************************************|
-## 10:50:25 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpK18Fol/file533f23507bc0
-## 10:50:25 Searching Annoy index using 1 thread, search_k = 3000
-## 10:50:26 Annoy recall = 100%
-## 10:50:26 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 10:50:27 Initializing from normalized Laplacian + noise (using RSpectra)
-## 10:50:27 Commencing optimization for 500 epochs, with 147830 positive edges
-## 10:50:27 Using rng type: pcg
-## 10:50:30 Optimization finished
+## 10:15:08 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//Rtmp1eUSG1/file162bb4002c7ff
+## 10:15:08 Searching Annoy index using 1 thread, search_k = 3000
+## 10:15:09 Annoy recall = 100%
+## 10:15:09 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 10:15:10 Initializing from normalized Laplacian + noise (using RSpectra)
+## 10:15:10 Commencing optimization for 500 epochs, with 147830 positive edges
+## 10:15:10 Using rng type: pcg
+## 10:15:12 Optimization finished
 ```
 
 ``` r
@@ -1024,6 +676,12 @@ seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_po
 ## Number of communities: 16
 ## Elapsed time: 0 seconds
 ```
+### save the filtered Seurat object for part 2 of workshop
+
+``` r
+saveRDS(seurat_obj_filt_singlets_posthocfilt, file = "pbmc4k_seurat_obj_filt_singlets_posthocfilt.rds")
+```
+
 #### make UMAP plot of filtered data
 
 ``` r
@@ -1031,7 +689,7 @@ filtered_umap_plot<-DimPlot(seurat_obj_filt_singlets_posthocfilt, label = TRUE) 
 plot_grid(unfiltered_umap_plot,filtered_umap_plot,ncol=2,nrow=1)
 ```
 
-![](SinglecellRNAseq_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 ### cluster similarity heatmap
 
 ``` r
@@ -1112,7 +770,7 @@ theme(axis.title.x=element_text(size=14),axis.title.y=element_text(size=14))
 unfiltVsfilt_heatmap_plot
 ```
 
-![](SinglecellRNAseq_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 A few notable observations can be made about the similarity plot:
 1. there is a high prevalence of one-to-one strong similarity between unfiltered and filtered clusters, but
 2. filtering led to the splitting of an unfiltered cluster into two distinct clusters. This is expected when one removed ambient RNA contamination and heterotypic doublets that can weaken differentiation between clusters.
@@ -1120,7 +778,8 @@ A few notable observations can be made about the similarity plot:
 In summary, filtering matters!
 
 ## Future directions
-In our subsequent scRNA-seq workshop next week, we will dive into downstream analysis including:
+In our subsequent scRNA-seq workshop next week, we will dive into downstream analysis including: 
+
 * identifying marker genes for clusters
 * multi-sample integration
 * differential expression testing across samples
