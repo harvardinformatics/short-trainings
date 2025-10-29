@@ -374,6 +374,7 @@ cat(paste("The number of cells with low # of genes recovered %: ",sum(low_featur
 ```
 
 While this data set did not contain any statistically detectable outliers based upon MAD, if they had been detected, one would proceed by: 
+
 * creating a list of cells to discard
 * using a logical operation to create `cells_to_keep` from the discard list
 * using seurat's `subset` function to specify which cells to keep

@@ -659,21 +659,21 @@ seurat_obj &lt;- PercentageFeatureSet(seurat_obj, pattern = &quot;^MT-&quot;, co
 seurat_obj &lt;- SCTransform(seurat_obj, vars.to.regress = &quot;percent.mt&quot;, verbose = FALSE)
 seurat_obj &lt;- RunPCA(seurat_obj, verbose = FALSE)
 seurat_obj &lt;- RunUMAP(seurat_obj, dims = 1:30)</code></pre>
-<pre><code>## 11:29:51 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
-<pre><code>## 11:29:51 Read 4340 rows and found 30 numeric columns</code></pre>
-<pre><code>## 11:29:51 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
-<pre><code>## 11:29:51 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
+<pre><code>## 13:12:37 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
+<pre><code>## 13:12:37 Read 4340 rows and found 30 numeric columns</code></pre>
+<pre><code>## 13:12:37 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
+<pre><code>## 13:12:37 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
 <pre><code>## 0%   10   20   30   40   50   60   70   80   90   100%</code></pre>
 <pre><code>## [----|----|----|----|----|----|----|----|----|----|</code></pre>
 <pre><code>## **************************************************|
-## 11:29:52 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpoDLxbo/file1062f42ee491a
-## 11:29:52 Searching Annoy index using 1 thread, search_k = 3000
-## 11:29:52 Annoy recall = 100%
-## 11:29:52 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 11:29:53 Initializing from normalized Laplacian + noise (using RSpectra)
-## 11:29:53 Commencing optimization for 500 epochs, with 182084 positive edges
-## 11:29:53 Using rng type: pcg
-## 11:29:56 Optimization finished</code></pre>
+## 13:12:37 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb37fc29078
+## 13:12:37 Searching Annoy index using 1 thread, search_k = 3000
+## 13:12:37 Annoy recall = 100%
+## 13:12:38 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:12:39 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:12:39 Commencing optimization for 500 epochs, with 182084 positive edges
+## 13:12:39 Using rng type: pcg
+## 13:12:41 Optimization finished</code></pre>
 <pre class="r"><code>seurat_obj &lt;- FindNeighbors(seurat_obj, dims = 1:30)</code></pre>
 <pre><code>## Computing nearest neighbor graph
 ## Computing SNN</code></pre>
@@ -942,9 +942,14 @@ cat(paste(&quot;The number of cells with low # of genes recovered %: &quot;,sum(
 <pre><code>## The number of cells with low # of genes recovered %:  0</code></pre>
 <p>While this data set did not contain any statistically detectable
 outliers based upon MAD, if they had been detected, one would proceed
-by: * creating a list of cells to discard * using a logical operation to
-create <code>cells_to_keep</code> from the discard list * using seurat’s
-<code>subset</code> function to specify which cells to keep</p>
+by:</p>
+<ul>
+<li>creating a list of cells to discard</li>
+<li>using a logical operation to create <code>cells_to_keep</code> from
+the discard list</li>
+<li>using seurat’s <code>subset</code> function to specify which cells
+to keep</li>
+</ul>
 <pre class="r"><code>discard &lt;- high_mito | low_counts | low_features
 cells_to_keep &lt;- colnames(seurat_obj_filt_singlets)[!discard]
 seurat_obj_filt_singlets &lt;- subset(seurat_obj_filt_singlets, cells = cells_to_keep)</code></pre>
@@ -964,21 +969,21 @@ data.</p>
 <pre class="r"><code>seurat_obj_filt_singlets_posthocfilt &lt;- SCTransform(seurat_obj_filt_singlets_posthocfilt, vars.to.regress = &quot;percent.mt&quot;, verbose = FALSE)
 seurat_obj_filt_singlets_posthocfilt &lt;- RunPCA(seurat_obj_filt_singlets_posthocfilt, verbose = FALSE)
 seurat_obj_filt_singlets_posthocfilt &lt;- RunUMAP(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)</code></pre>
-<pre><code>## 11:30:24 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
-<pre><code>## 11:30:24 Read 3612 rows and found 30 numeric columns</code></pre>
-<pre><code>## 11:30:24 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
-<pre><code>## 11:30:24 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
+<pre><code>## 13:13:10 UMAP embedding parameters a = 0.9922 b = 1.112</code></pre>
+<pre><code>## 13:13:10 Read 3612 rows and found 30 numeric columns</code></pre>
+<pre><code>## 13:13:10 Using Annoy for neighbor search, n_neighbors = 30</code></pre>
+<pre><code>## 13:13:10 Building Annoy index with metric = cosine, n_trees = 50</code></pre>
 <pre><code>## 0%   10   20   30   40   50   60   70   80   90   100%</code></pre>
 <pre><code>## [----|----|----|----|----|----|----|----|----|----|</code></pre>
 <pre><code>## **************************************************|
-## 11:30:24 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpoDLxbo/file1062f3c75814
-## 11:30:24 Searching Annoy index using 1 thread, search_k = 3000
-## 11:30:25 Annoy recall = 100%
-## 11:30:25 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 11:30:26 Initializing from normalized Laplacian + noise (using RSpectra)
-## 11:30:26 Commencing optimization for 500 epochs, with 147830 positive edges
-## 11:30:26 Using rng type: pcg
-## 11:30:28 Optimization finished</code></pre>
+## 13:13:11 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb33c811450
+## 13:13:11 Searching Annoy index using 1 thread, search_k = 3000
+## 13:13:11 Annoy recall = 100%
+## 13:13:11 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:13:12 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:13:12 Commencing optimization for 500 epochs, with 147830 positive edges
+## 13:13:12 Using rng type: pcg
+## 13:13:15 Optimization finished</code></pre>
 <pre class="r"><code>seurat_obj_filt_singlets_posthocfilt &lt;- FindNeighbors(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)</code></pre>
 <pre><code>## Computing nearest neighbor graph
 ## Computing SNN</code></pre>
