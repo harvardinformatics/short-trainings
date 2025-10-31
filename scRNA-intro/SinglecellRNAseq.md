@@ -17,7 +17,8 @@ Welcome to today's workshop on single-cell RNA-seq. Single cell genomics is noth
 * Artefacts requiring data cleaning
 * Base-level QC metrics: stuff reported from instrument-associated software
 * scRNAseq data structures
-  * sparse matrices, cell barcode and feature tableszero-inflation
+  * sparse matrices, cell barcode and feature tables
+  * zero-inflation
 * Loading data with the R package Seurat
 * Data processing,filtering, and clustering
 
@@ -112,7 +113,10 @@ Typical metrics reported as part of *cellranger count* or other instrument-relat
 
 
 ## scRNAseq data structures
-Because sequencing effort is spread across thousands of cells for which expression is estimated for tens of thousands of features, scRNAseq matrices are sparse, meaning that there are lots of small counts, and more importantly, lots of zero counts. The resulting count matrices are often referred to as "zero-inflated", leading to debate about the sources of zero-inflation, and whether the counts are in fact zero-inflated. Relevant papers to look at are [Jiang et al. 2022, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02601-5), and [Svensson 2022, *Nature Biotechnology*](https://www.nature.com/articles/s41587-019-0379-5). Wherever the consensus ultimately lands on the statistical front, pratically speaking, the count matrices are comprised of rows that represent features (either gene ids or isoform ids), and columns that represent cells.
+Because sequencing effort is spread across thousands of cells for which expression is estimated for tens of thousands of features, scRNAseq matrices are sparse, meaning that there are lots of small counts, and more importantly, lots of zero counts. The resulting count matrices are often referred to as "zero-inflated", leading to debate about the sources of zero-inflation, and whether the counts are in fact zero-inflated. Relevant papers to look at are [Jiang et al. 2022, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02601-5), and [Svensson 2022, *Nature Biotechnology*](https://www.nature.com/articles/s41587-019-0379-5). Wherever the consensus ultimately lands on the statistical front, pratically speaking, the count matrices are comprised of rows that represent features (either gene ids or isoform ids), and columns that represent cells. Additional data files that typically accompany the matrix are: 
+
+* table of cell barcodes corresponding to columns in the matrix
+* table of features, which for 10x libraries are gene symbols, which are rows in the matrix
 
 ## Constructing a workflow (at least the initial part of it!)
 
@@ -128,38 +132,23 @@ We will walk through the workflow represented by the diagram below that takes 10
 ### 1. Setup
 ### automated package install
 
-```
-## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.1     ✔ stringr   1.5.2
-## ✔ ggplot2   4.0.0     ✔ tibble    3.3.0
-## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-## ✔ purrr     1.1.0     
-## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()
-## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-## 
-## Attaching package: 'cowplot'
-## 
-## 
-## The following object is masked from 'package:patchwork':
-## 
-##     align_plots
-## 
-## 
-## The following object is masked from 'package:lubridate':
-## 
-##     stamp
-## 
-## 
-## Bioconductor version 3.21 (BiocManager 1.30.26), R 4.5.1 (2025-06-13)
-## 
-## Old packages: 'promises'
-```
 
 #### library load
 
+``` r
+library(Seurat)
+library(patchwork)
+library(sctransform)
+library(tidyverse)
+library(SoupX)
+library(cowplot)
+library(glmGamPoi)
+library(scDblFinder)
+library(scater)
+
+
+data_dir=getwd()
+```
 
 
 
@@ -187,7 +176,8 @@ Tools to correct counts for droplets deemed to contain cells involve two steps:
 * using the estimate of the soup to subtract it from droplets containing cells.
 
 
-We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6049831) to detect and correct counts for contamination for ambient RNA. SoupX corrects contamination as follows:
+We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6049831) to detect and correct counts for contamination for ambient RNA. SoupX corrects contamination as follows: 
+
 * for each cell cluster identify "non-expressed genes"
 * for each of those non-expressed genes,calculate a likelihood of a contamination fraction given a particular contamination rate estimate
 * perform those calculations across all non-expressed genes and clusters, and generate a single maximum likelihood estimate of the contamination fraction
@@ -208,19 +198,19 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 ```
 
 ```
-## 10:14:35 UMAP embedding parameters a = 0.9922 b = 1.112
+## 13:12:37 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 10:14:35 Read 4340 rows and found 30 numeric columns
+## 13:12:37 Read 4340 rows and found 30 numeric columns
 ```
 
 ```
-## 10:14:35 Using Annoy for neighbor search, n_neighbors = 30
+## 13:12:37 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 10:14:35 Building Annoy index with metric = cosine, n_trees = 50
+## 13:12:37 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -233,14 +223,14 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 
 ```
 ## **************************************************|
-## 10:14:35 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//Rtmp1eUSG1/file162bb22cfcc19
-## 10:14:35 Searching Annoy index using 1 thread, search_k = 3000
-## 10:14:35 Annoy recall = 100%
-## 10:14:36 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 10:14:37 Initializing from normalized Laplacian + noise (using RSpectra)
-## 10:14:37 Commencing optimization for 500 epochs, with 182084 positive edges
-## 10:14:37 Using rng type: pcg
-## 10:14:40 Optimization finished
+## 13:12:37 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb37fc29078
+## 13:12:37 Searching Annoy index using 1 thread, search_k = 3000
+## 13:12:37 Annoy recall = 100%
+## 13:12:38 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:12:39 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:12:39 Commencing optimization for 500 epochs, with 182084 positive edges
+## 13:12:39 Using rng type: pcg
+## 13:12:41 Optimization finished
 ```
 
 ``` r
@@ -312,13 +302,21 @@ Note: one can also access the metadata with `seurat_obj[[]]`.
 #### Running SoupX
 
 ``` r
+# create soup channel
 soup_channel <- SoupX::SoupChannel(tod = sc_data_raw,toc=sc_data_filtered,
                 is10X = TRUE)
+
+# add sc_data_raw as an accessible data frame in the soup channel
 soup_channel$tod<-sc_data_raw
+
+# specify clusters from the seurat_obj value for Idents
 soup_channel <- SoupX::setClusters(soup_channel, 
                                    clusters = as.factor(Idents(seurat_obj)))
+# manually specify dimension reduction
 soup_channel <- setDR(soup_channel, 
                 DR=Seurat::Embeddings(seurat_obj, "umap"))
+
+# estimate contamination
 soup_channel <- autoEstCont(soup_channel)
 ```
 
@@ -346,21 +344,11 @@ corrected_counts <- adjustCounts(soup_channel,roundToInt=TRUE)
 ```
 
 ```
-## Warning in sparseMatrix(i = out@i[w] + 1, j = out@j[w] + 1, x = out@x[w], :
-## 'giveCsparse' is deprecated; setting repr="T" for you
-```
-
-```
 ## Expanding counts from 15 clusters to 4340 cells.
 ```
 
 ``` r
 seurat_obj_filt <- CreateSeuratObject(counts = corrected_counts)
-```
-
-```
-## Warning: Feature names cannot have underscores ('_'), replacing with dashes
-## ('-')
 ```
 
 ### Re-process corrected count data
@@ -488,7 +476,6 @@ cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_sing
 ### post hoc filtering 
 While computational methods to remove empty droplets and detect doublets enable flagging and filter out of barcodes that can negatively impact downstream analysis, it is likely that a number of droplets will remain in the data set that should probably be removed, in particular: 
 
-* doublets that did not get flagged by *scDblFinder*
 * low quality or dying cells
 * droplets that by virtue of the stochastic nature of sequencing generated few UMIs and contained few detectable genes
 
@@ -529,12 +516,14 @@ There are two approaches for post hoc filtering:
 
 #### outlier detection
 
-Following the [Orchestrating Single-Cell Analysis with Bioconductor, aka OSCA](https://bioconductor.org/books/release/OSCA/), for outlier detection we perform adaptive filtering using the median absolute deviation (MAD) statistic, filtering out:
+Following the [Orchestrating Single-Cell Analysis with Bioconductor, aka OSCA](https://bioconductor.org/books/release/OSCA/), for outlier detection we perform adaptive filtering using the median absolute deviation (MAD) statistic, filtering out: 
+
 * cells with  % mtDNA > 3 MADs above the median
 * cells with UMI count > 3 MADs below the median
 * cells with gene count > 3 MADs below the median
 
-For the seurat object, we have to:
+For the seurat object, we have to: 
+
 * convert it to an *SingleCellExperiment* object
 * get list of mtDNA genes (which we've already done)
 * call `perCellQCMetrics`
@@ -589,7 +578,12 @@ cat(paste("The number of cells with low # of genes recovered %: ",sum(low_featur
 ## The number of cells with low # of genes recovered %:  0
 ```
 
-While this data set did not contain any statistically detectable outliers based upon MAD, if they had been detected, one would proceed as follows:
+While this data set did not contain any statistically detectable outliers based upon MAD, if they had been detected, one would proceed by: 
+
+* creating a list of cells to discard
+* using a logical operation to create `cells_to_keep` from the discard list
+* using seurat's `subset` function to specify which cells to keep
+
 
 ``` r
 discard <- high_mito | low_counts | low_features
@@ -598,7 +592,7 @@ seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_ke
 ```
 
 #### filtering with manually set thresholds
-Beyond what outliers may have been removed with the *MAD* approach, one can then apply additional manual filters that typically used.
+Beyond what outliers may have been removed with the MAD approach, one can then apply additional manual filters that typically used.
 
 
 ``` r
@@ -617,19 +611,19 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 ```
 
 ```
-## 10:15:08 UMAP embedding parameters a = 0.9922 b = 1.112
+## 13:13:10 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 10:15:08 Read 3612 rows and found 30 numeric columns
+## 13:13:10 Read 3612 rows and found 30 numeric columns
 ```
 
 ```
-## 10:15:08 Using Annoy for neighbor search, n_neighbors = 30
+## 13:13:10 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 10:15:08 Building Annoy index with metric = cosine, n_trees = 50
+## 13:13:10 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -642,14 +636,14 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 
 ```
 ## **************************************************|
-## 10:15:08 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//Rtmp1eUSG1/file162bb4002c7ff
-## 10:15:08 Searching Annoy index using 1 thread, search_k = 3000
-## 10:15:09 Annoy recall = 100%
-## 10:15:09 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 10:15:10 Initializing from normalized Laplacian + noise (using RSpectra)
-## 10:15:10 Commencing optimization for 500 epochs, with 147830 positive edges
-## 10:15:10 Using rng type: pcg
-## 10:15:12 Optimization finished
+## 13:13:11 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb33c811450
+## 13:13:11 Searching Annoy index using 1 thread, search_k = 3000
+## 13:13:11 Annoy recall = 100%
+## 13:13:11 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:13:12 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:13:12 Commencing optimization for 500 epochs, with 147830 positive edges
+## 13:13:12 Using rng type: pcg
+## 13:13:15 Optimization finished
 ```
 
 ``` r
@@ -676,7 +670,9 @@ seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_po
 ## Number of communities: 16
 ## Elapsed time: 0 seconds
 ```
-### save the filtered Seurat object for part 2 of workshop
+
+#### save the filtered Seurat object for part 2 of workshop
+
 
 ``` r
 saveRDS(seurat_obj_filt_singlets_posthocfilt, file = "pbmc4k_seurat_obj_filt_singlets_posthocfilt.rds")
@@ -684,12 +680,14 @@ saveRDS(seurat_obj_filt_singlets_posthocfilt, file = "pbmc4k_seurat_obj_filt_sin
 
 #### make UMAP plot of filtered data
 
+
 ``` r
 filtered_umap_plot<-DimPlot(seurat_obj_filt_singlets_posthocfilt, label = TRUE) + ggtitle("Filtered")
 plot_grid(unfiltered_umap_plot,filtered_umap_plot,ncol=2,nrow=1)
 ```
 
 ![](SinglecellRNAseq_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
 ### cluster similarity heatmap
 
 ``` r
@@ -713,14 +711,14 @@ unique_filt <- unique(clusters_merged$clusterid_filt)
 
 
 ``` r
-##### Precompute indices for each cluster to avoid recalculating
+# Precompute indices for each cluster to avoid recalculating
 unfilt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_unfilt)
 filt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_filt)
 
-##### Create an empty list to store results
+# Create an empty list to store results
 jaccard_list <- list()
 
-##### Calculate Jaccard distances and store them directly in a list
+# Calculate Jaccard distances and store them directly in a list
 for (i in names(unfilt_indices)) {
   for (j in names(filt_indices)) {
     set1 <- unfilt_indices[[i]]
@@ -736,10 +734,10 @@ for (i in names(unfilt_indices)) {
   }
 }
 
-#### Convert the list to a data frame
+# Convert the list to a data frame
 jaccard_df <- do.call(rbind, lapply(jaccard_list, as.data.frame))
 
-#### Convert columns to appropriate types
+# Convert columns to appropriate types
 jaccard_df <- type.convert(jaccard_df, as.is = TRUE)
 ```
 
@@ -771,7 +769,9 @@ unfiltVsfilt_heatmap_plot
 ```
 
 ![](SinglecellRNAseq_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
-A few notable observations can be made about the similarity plot:
+
+A few notable observations can be made about the similarity plot: 
+
 1. there is a high prevalence of one-to-one strong similarity between unfiltered and filtered clusters, but
 2. filtering led to the splitting of an unfiltered cluster into two distinct clusters. This is expected when one removed ambient RNA contamination and heterotypic doublets that can weaken differentiation between clusters.
 
@@ -781,5 +781,6 @@ In summary, filtering matters!
 In our subsequent scRNA-seq workshop next week, we will dive into downstream analysis including: 
 
 * identifying marker genes for clusters
+* cell type annotation
 * multi-sample integration
 * differential expression testing across samples
