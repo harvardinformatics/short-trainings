@@ -131,25 +131,11 @@ We will walk through the workflow represented by the diagram below that takes 10
 
 ### 1. Setup
 ### automated package install
-```{r,echo=FALSE,warning=FALSE,message=FALSE}
-installed_packages <- rownames(installed.packages())
-for (pkg in c("tidyverse", "patchwork", "sctransform","SoupX",
-                "cowplot")) {
-  if (!pkg %in% installed_packages) {
-    install.packages(pkg, quiet = TRUE)
-  }
-  library(pkg, character.only = TRUE)
-}
-  
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
 
-
-BiocManager::install(c("glmGamPoi", "scDblFinder","scater"))
-```
 
 #### library load
-```{r,warning=FALSE,message=FALSE}
+
+``` r
 library(Seurat)
 library(patchwork)
 library(sctransform)
@@ -164,24 +150,23 @@ library(scater)
 data_dir=getwd()
 ```
 
-```{r,include=FALSE}
-download.file("https://cf.10xgenomics.com/samples/cell-exp/2.1.0/pbmc4k/pbmc4k_raw_gene_bc_matrices.tar.gz", 
-    destfile = file.path(data_dir, "tod.tar.gz"))
-download.file("https://cf.10xgenomics.com/samples/cell-exp/2.1.0/pbmc4k/pbmc4k_filtered_gene_bc_matrices.tar.gz", 
-    destfile = file.path(data_dir, "toc.tar.gz"))
-untar(file.path(data_dir, "tod.tar.gz"), exdir = data_dir)
-untar(file.path(data_dir, "toc.tar.gz"), exdir = data_dir)
-```
+
 
 ### Load data with Seurat 10x data loader
-```{r,warning=FALSE}
+
+``` r
 sc_data_raw <- Seurat::Read10X(file.path(data.dir = data_dir,"raw_gene_bc_matrices","GRCh38"))
 sc_data_filtered <- Seurat::Read10X(file.path(data.dir = data_dir,"filtered_gene_bc_matrices","GRCh38"))                              
 ```
 
 If we take a quick look at the dimensions of the filtered matrix, we see that:
-```{r}
+
+``` r
 dim(sc_data_filtered)
+```
+
+```
+## [1] 33694  4340
 ```
 there are 33694 genes an 4340 cells in the data set.
 
@@ -203,20 +188,83 @@ We are using [SoupX](https://academic.oup.com/gigascience/article/9/12/giaa151/6
 #### Initialzing the Seurat object, and performing clustering analysis
 Because SoupX requires information on clusters, we must perform a provisional clustering analysis, knowing that we will re-cluster the data once all filtering and cleanup of the data has been finished. Another important thing to note is that rather than the traditional way of normalizing count data, were are using a new and improved normalization method called *SCtransform*, described in [Hafemeister and Satija 2019, *Genome Biology*](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), conveniently available in Seurat.
 
-```{r,warning=FALSE}
+
+``` r
 seurat_obj <- CreateSeuratObject(counts = sc_data_filtered)
 seurat_obj <- PercentageFeatureSet(seurat_obj, pattern = "^MT-", col.name = "percent.mt")
 seurat_obj <- SCTransform(seurat_obj, vars.to.regress = "percent.mt", verbose = FALSE)
 seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
 seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
+```
+
+```
+## 13:12:37 UMAP embedding parameters a = 0.9922 b = 1.112
+```
+
+```
+## 13:12:37 Read 4340 rows and found 30 numeric columns
+```
+
+```
+## 13:12:37 Using Annoy for neighbor search, n_neighbors = 30
+```
+
+```
+## 13:12:37 Building Annoy index with metric = cosine, n_trees = 50
+```
+
+```
+## 0%   10   20   30   40   50   60   70   80   90   100%
+```
+
+```
+## [----|----|----|----|----|----|----|----|----|----|
+```
+
+```
+## **************************************************|
+## 13:12:37 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb37fc29078
+## 13:12:37 Searching Annoy index using 1 thread, search_k = 3000
+## 13:12:37 Annoy recall = 100%
+## 13:12:38 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:12:39 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:12:39 Commencing optimization for 500 epochs, with 182084 positive edges
+## 13:12:39 Using rng type: pcg
+## 13:12:41 Optimization finished
+```
+
+``` r
 seurat_obj <- FindNeighbors(seurat_obj, dims = 1:30)
+```
+
+```
+## Computing nearest neighbor graph
+## Computing SNN
+```
+
+``` r
 seurat_obj <- FindClusters(seurat_obj)
 ```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 4340
+## Number of edges: 156541
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.8698
+## Number of communities: 15
+## Elapsed time: 0 seconds
+```
 #### make UMAP plot of data without ambient RNA decontamination
-```{r,warning=FALSE}
+
+``` r
 unfiltered_umap_plot<-DimPlot(seurat_obj, label = TRUE) + ggtitle("Unfiltered")
 unfiltered_umap_plot
 ```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 
 #### A quick note about metadata
@@ -227,14 +275,33 @@ Default metadata are:
 
 One can add additional metadata such as the percent of UMIs that originate from mtDNA, which we will do later, but there is no need since this isn't the final version of the data. But, notice that normalization and clustering has led to additional metadata being added:  
 
-```{r}
+
+``` r
 head(seurat_obj@meta.data)
+```
+
+```
+##                       orig.ident nCount_RNA nFeature_RNA percent.mt nCount_SCT
+## AAACCTGAGAAGGCCT-1 SeuratProject       1738          748   6.386651       3461
+## AAACCTGAGACAGACC-1 SeuratProject       3240         1052   5.462963       3627
+## AAACCTGAGATAGTCA-1 SeuratProject       1683          739   7.367796       3451
+## AAACCTGAGCGCCTCA-1 SeuratProject       2319          875   3.837861       3442
+## AAACCTGAGGCATGGT-1 SeuratProject       2983          951   2.246061       3587
+## AAACCTGCAAGGTTCT-1 SeuratProject       4181         1248   2.224348       3967
+##                    nFeature_SCT SCT_snn_res.0.8 seurat_clusters
+## AAACCTGAGAAGGCCT-1          758              13              13
+## AAACCTGAGACAGACC-1         1040               0               0
+## AAACCTGAGATAGTCA-1          767               0               0
+## AAACCTGAGCGCCTCA-1          862               2               2
+## AAACCTGAGGCATGGT-1          939               1               1
+## AAACCTGCAAGGTTCT-1         1232               3               3
 ```
 
 Note: one can also access the metadata with `seurat_obj[[]]`.
 
 #### Running SoupX
-```{r}
+
+``` r
 # create soup channel
 soup_channel <- SoupX::SoupChannel(tod = sc_data_raw,toc=sc_data_filtered,
                 is10X = TRUE)
@@ -253,17 +320,40 @@ soup_channel <- setDR(soup_channel,
 soup_channel <- autoEstCont(soup_channel)
 ```
 
+```
+## 822 genes passed tf-idf cut-off and 428 soup quantile filter.  Taking the top 100.
+```
+
+```
+## Using 998 independent estimates of rho.
+```
+
+```
+## Estimated global rho of 0.06
+```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
 The labelling on the above plot is slighty confusing because Bayesian methods are not used to estimate rho, the contamination fraction. The "prior" is actually the combined density of all the non-expressed gene x cell cluster estimates of the contaminant fraction, while the "posterior" is the joint likelihood function fitted to the data.
 
 #### Create new Seurat object with corrected counts
 We can update the counts to the corrected ones, then save the raw counts to a raw_counts attribute.
-```{r,warning=FALSE}
+
+``` r
 corrected_counts <- adjustCounts(soup_channel,roundToInt=TRUE)
+```
+
+```
+## Expanding counts from 15 clusters to 4340 cells.
+```
+
+``` r
 seurat_obj_filt <- CreateSeuratObject(counts = corrected_counts)
 ```
 
 ### Re-process corrected count data
-```{r}
+
+``` r
 seurat_obj_filt <- PercentageFeatureSet(seurat_obj_filt, pattern = "^MT-", col.name = "percent.mt")
 ```
 
@@ -273,21 +363,88 @@ From a recent review, the top-performing doublet detection method was found to b
 *scDblFinder* cannot take a *seruat* object as input. The object must first be converted to a `SingleCellExperiment` object.
 
 #### convert to an SCE
-```{r,warning=FALSE}
+
+``` r
 sce_obj_filt <- as.SingleCellExperiment(seurat_obj_filt)
 ```
 
 #### run scDblFinder
 *scDblFinder* has parameter options you can change, and particularly relevant is `dbr`, which is the expected doublet rate. However, the developers indicate *"For 10x data, it is usually safe to leave the dbr empty, and it will be automatically estimated. (If using a chip other than the standard 10X, you might have to adjust it or the related dbr.per1k argument."*
 
-```{r}
+
+``` r
 sce_obj_filt <- scDblFinder(sce_obj_filt)
+```
+
+```
+## Creating ~3472 artificial doublets...
+```
+
+```
+## Dimensional reduction
+```
+
+```
+## Evaluating kNN...
+```
+
+```
+## Training model...
+```
+
+```
+## iter=0, 544 cells excluded from training.
+```
+
+```
+## iter=1, 547 cells excluded from training.
+```
+
+```
+## iter=2, 528 cells excluded from training.
+```
+
+```
+## Threshold found:0.433
+```
+
+```
+## 221 (5.1%) doublets called
 ```
 
 The doublet classification information is now stored in `scDblFinder.class` in the SCE object.
 
-```{r}
+
+``` r
 head(colData(sce_obj_filt))
+```
+
+```
+## DataFrame with 6 rows and 9 columns
+##                       orig.ident nCount_RNA nFeature_RNA percent.mt
+##                         <factor>  <numeric>    <integer>  <numeric>
+## AAACCTGAGAAGGCCT-1 SeuratProject       1653          732    6.53358
+## AAACCTGAGACAGACC-1 SeuratProject       3062         1004    5.55193
+## AAACCTGAGATAGTCA-1 SeuratProject       1609          721    7.39590
+## AAACCTGAGCGCCTCA-1 SeuratProject       2189          837    3.88305
+## AAACCTGAGGCATGGT-1 SeuratProject       2821          902    2.19780
+## AAACCTGCAAGGTTCT-1 SeuratProject       3930         1168    2.18830
+##                            ident scDblFinder.class scDblFinder.score
+##                         <factor>          <factor>         <numeric>
+## AAACCTGAGAAGGCCT-1 SeuratProject           singlet       0.000338863
+## AAACCTGAGACAGACC-1 SeuratProject           singlet       0.001126437
+## AAACCTGAGATAGTCA-1 SeuratProject           singlet       0.000406255
+## AAACCTGAGCGCCTCA-1 SeuratProject           singlet       0.021840787
+## AAACCTGAGGCATGGT-1 SeuratProject           singlet       0.000286932
+## AAACCTGCAAGGTTCT-1 SeuratProject           singlet       0.011666683
+##                    scDblFinder.weighted scDblFinder.cxds_score
+##                               <numeric>              <numeric>
+## AAACCTGAGAAGGCCT-1            0.1089213            0.038705186
+## AAACCTGAGACAGACC-1            0.1576065            0.088725122
+## AAACCTGAGATAGTCA-1            0.0000000            0.000629113
+## AAACCTGAGCGCCTCA-1            0.3870337            0.019500514
+## AAACCTGAGGCATGGT-1            0.0793885            0.026678087
+## AAACCTGCAAGGTTCT-1            0.4515635            0.025072564
 ```
 Three types of information are provided on droplets: 
 
@@ -297,11 +454,23 @@ Three types of information are provided on droplets:
 
 If desired, the scores faciliate fine-grained tuning of thresholds after iterations of data exploration. For the purposes of this workshop, we will simply add the *scDblFinder.class* data to the seurat object and filter in on that classification.
 
-```{r}
+
+``` r
 seurat_obj_filt$scDblFinder.class <- colData(sce_obj_filt)$scDblFinder.class
 seurat_obj_filt_singlets <- subset(seurat_obj_filt, subset = scDblFinder.class == "singlet")
 cat(paste("The number of cells before doublet removal: ",dim(seurat_obj_filt)[2],"\n"))
+```
+
+```
+## The number of cells before doublet removal:  4340
+```
+
+``` r
 cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_singlets)[2]))
+```
+
+```
+## The number of cells after doublet removal:  4119
 ```
 
 ### post hoc filtering 
@@ -317,7 +486,8 @@ Prior to filtering, it is straightforward (and useful!) to visualize UMI and fea
 
 Because clustering information is now embedded in the seurat object, it is not possible using default Seurat functions to produce a global violin plot without it being grouped by cluster id. Therefore, we can just use tidyverse functions to make some prettier plots!
 
-```{r}
+
+``` r
 violindata<-tibble(nCount_RNA = seurat_obj_filt@meta.data$nCount_RNA, nFeature_RNA = seurat_obj_filt@meta.data$nFeature_RNA, percent.mt = seurat_obj_filt@meta.data$percent.mt)
 colnames(violindata)<-c("nCount_RNA","nFeature_RNA","percent.mt")
 ncount_violin<- violindata %>% ggplot(aes(x=1,y=nCount_RNA)) + geom_violin() + xlab("")
@@ -325,14 +495,19 @@ nfeat_violin<- violindata %>% ggplot(aes(x=1,y=nFeature_RNA)) + geom_violin() + 
 mt_violin<- violindata %>% ggplot(aes(x=1,y=percent.mt)) + geom_violin() + xlab("")
 plot_grid(ncount_violin,nfeat_violin,mt_violin, ncol=3, nrow=1)
 ```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
                   
 We can also make biplots of the metrics:
 
-```{r}
+
+``` r
 mtvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=percent.mt)) + geom_point(alpha=0.2,size=1)
 nfvsnc<- violindata %>% ggplot(aes(x=log10(nCount_RNA),y=nFeature_RNA)) + geom_point(alpha=0.2,size=1)
 plot_grid(mtvsnc,nfvsnc, ncol=2, nrow=1)
 ```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 There are two approaches for post hoc filtering: 
 
@@ -358,19 +533,49 @@ For the seurat object, we have to:
   * this is done because the `as.Seurat` function that converts an SCE looks for these counts in the data slot and will throw an error if it can't find them
 * convert the SCE back to a seurat object
 
-```{r}
+
+``` r
 sce_filt_singlets <-as.SingleCellExperiment(seurat_obj_filt_singlets)
+```
+
+```
+## Warning: Layer 'data' is empty
+```
+
+```
+## Warning: Layer 'scale.data' is empty
+```
+
+``` r
 mito_genes <- grep("^mt-", rownames(seurat_obj_filt_singlets), value = TRUE)
 qc <- perCellQCMetrics(sce_filt_singlets, subsets = list(Mito = mito_genes))
 # 1. High %mtDNA outliers
 high_mito <- isOutlier(qc$subsets_Mito_percent, type = "higher") # TRUE for outliers (high %mtDNA)
 cat(paste("The number of cells with high mtDNA %: ",sum(high_mito)))
+```
+
+```
+## The number of cells with high mtDNA %:  0
+```
+
+``` r
 # 2. Low UMI count outliers (library size is 'sum')
 low_counts <- isOutlier(qc$sum, type = "lower") # TRUE for outliers (low total UMI count)
 cat(paste("The number of cells with low UMI counts %: ",sum(low_counts)))
+```
+
+```
+## The number of cells with low UMI counts %:  0
+```
+
+``` r
 # 3. Low feature count outliers ('detected')
 low_features <- isOutlier(qc$detected, type = "lower") # TRUE for outliers (low detected features)
 cat(paste("The number of cells with low # of genes recovered %: ",sum(low_features)))
+```
+
+```
+## The number of cells with low # of genes recovered %:  0
 ```
 
 While this data set did not contain any statistically detectable outliers based upon MAD, if they had been detected, one would proceed by: 
@@ -379,7 +584,8 @@ While this data set did not contain any statistically detectable outliers based 
 * using a logical operation to create `cells_to_keep` from the discard list
 * using seurat's `subset` function to specify which cells to keep
 
-```{r,eval=FALSE}
+
+``` r
 discard <- high_mito | low_counts | low_features
 cells_to_keep <- colnames(seurat_obj_filt_singlets)[!discard]
 seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_keep)
@@ -388,7 +594,8 @@ seurat_obj_filt_singlets <- subset(seurat_obj_filt_singlets, cells = cells_to_ke
 #### filtering with manually set thresholds
 Beyond what outliers may have been removed with the MAD approach, one can then apply additional manual filters that typically used.
 
-```{r}
+
+``` r
 seurat_obj_filt_singlets_posthocfilt <- subset(seurat_obj_filt_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
 ```
 
@@ -396,29 +603,94 @@ We reduced the data set to 3612 cells,filtering out approximately 17% of the inp
 
 ### Re-running clustering with corrected data
 
-```{r}
+
+``` r
 seurat_obj_filt_singlets_posthocfilt <- SCTransform(seurat_obj_filt_singlets_posthocfilt, vars.to.regress = "percent.mt", verbose = FALSE)
 seurat_obj_filt_singlets_posthocfilt <- RunPCA(seurat_obj_filt_singlets_posthocfilt, verbose = FALSE)
 seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)
+```
+
+```
+## 13:13:10 UMAP embedding parameters a = 0.9922 b = 1.112
+```
+
+```
+## 13:13:10 Read 3612 rows and found 30 numeric columns
+```
+
+```
+## 13:13:10 Using Annoy for neighbor search, n_neighbors = 30
+```
+
+```
+## 13:13:10 Building Annoy index with metric = cosine, n_trees = 50
+```
+
+```
+## 0%   10   20   30   40   50   60   70   80   90   100%
+```
+
+```
+## [----|----|----|----|----|----|----|----|----|----|
+```
+
+```
+## **************************************************|
+## 13:13:11 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb33c811450
+## 13:13:11 Searching Annoy index using 1 thread, search_k = 3000
+## 13:13:11 Annoy recall = 100%
+## 13:13:11 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 13:13:12 Initializing from normalized Laplacian + noise (using RSpectra)
+## 13:13:12 Commencing optimization for 500 epochs, with 147830 positive edges
+## 13:13:12 Using rng type: pcg
+## 13:13:15 Optimization finished
+```
+
+``` r
 seurat_obj_filt_singlets_posthocfilt <- FindNeighbors(seurat_obj_filt_singlets_posthocfilt, dims = 1:30)
+```
+
+```
+## Computing nearest neighbor graph
+## Computing SNN
+```
+
+``` r
 seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_posthocfilt)
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 3612
+## Number of edges: 126825
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.8755
+## Number of communities: 16
+## Elapsed time: 0 seconds
 ```
 
 #### save the filtered Seurat object for part 2 of workshop
 
-```{r}
+
+``` r
 saveRDS(seurat_obj_filt_singlets_posthocfilt, file = "pbmc4k_seurat_obj_filt_singlets_posthocfilt.rds")
 ```
 
 #### make UMAP plot of filtered data
 
-```{r}
+
+``` r
 filtered_umap_plot<-DimPlot(seurat_obj_filt_singlets_posthocfilt, label = TRUE) + ggtitle("Filtered")
 plot_grid(unfiltered_umap_plot,filtered_umap_plot,ncol=2,nrow=1)
 ```
 
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
 ### cluster similarity heatmap
-```{r}
+
+``` r
 # Define the Jaccard similarity function
 jaccard_similarity <- function(set1, set2) {
   intersect_length <- length(intersect(set1, set2))
@@ -427,7 +699,8 @@ jaccard_similarity <- function(set1, set2) {
 }
 ```
 
-```{r}
+
+``` r
 clusters_unfilt<-tibble(cellbarcode=row.names(seurat_obj@meta.data),clusterid_unfilt=seurat_obj@meta.data$seurat_clusters)
 clusters_filt<-tibble(cellbarcode=row.names(seurat_obj_filt_singlets_posthocfilt@meta.data),clusterid_filt=seurat_obj_filt_singlets_posthocfilt@meta.data$seurat_clusters)
 
@@ -436,7 +709,8 @@ unique_unfilt <- unique(clusters_merged$clusterid_unfilt)
 unique_filt <- unique(clusters_merged$clusterid_filt)
 ```
 
-```{r}
+
+``` r
 # Precompute indices for each cluster to avoid recalculating
 unfilt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_unfilt)
 filt_indices <- split(1:nrow(clusters_merged), clusters_merged$clusterid_filt)
@@ -468,7 +742,8 @@ jaccard_df <- type.convert(jaccard_df, as.is = TRUE)
 ```
 
 #### make heatmap of jaccard similarities
-```{r}
+
+``` r
 unfiltVsfilt_heatmap_plot <- ggplot(data = jaccard_df, aes(unfilt, filt, fill = jaccard_similarity)) +
   geom_tile(color="black") +
   #theme_classic() +
@@ -492,6 +767,8 @@ unfiltVsfilt_heatmap_plot <- ggplot(data = jaccard_df, aes(unfilt, filt, fill = 
 theme(axis.title.x=element_text(size=14),axis.title.y=element_text(size=14))
 unfiltVsfilt_heatmap_plot
 ```
+
+![](SinglecellRNAseq_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
 A few notable observations can be made about the similarity plot: 
 
