@@ -1,6 +1,8 @@
 ---
 title: "Harvard Informatics scRNA-seq workshop"
-author: "Adam Freedman and Tim Sackton"
+authors: 
+  - Adam Freedman
+  - Tim Sackton
 date: "Fall, 2025"
 output:
   html_document:
