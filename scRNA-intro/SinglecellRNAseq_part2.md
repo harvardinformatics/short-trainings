@@ -47,6 +47,13 @@ publicly available human PBMC data set as an example, we:
     * metrics for determining whether integration is necessary
 * differential expression analysis within cell clusters across conditions
 
+<p align="center">
+
+<img src="img/deworkflow.png" width="50%" height="50%"/>
+
+</p>
+
+
 ## Load/install libraries and set working directory
 
 These will have to be installed in order to run this R markdown file.
@@ -94,7 +101,7 @@ filtered_umap_plot<-DimPlot(pbmc_filtered_seurat, label = TRUE) + ggtitle("Filte
 filtered_umap_plot
 ```
 
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 ### Find all marker genes for cluster 8
 
@@ -253,7 +260,7 @@ pbmc_annots_umap<-DimPlot(pbmc_filtered_seurat, group.by = "SingleR.labels", lab
 plot_grid(filtered_umap_plot,pbmc_annots_umap,ncol=2,nrow=1)
 ```
 
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 Note that our clustering reveals finer grained subdivision than is implied simply by the cell type annotations. This can be caused by multiple sources, including: 
 
@@ -263,13 +270,21 @@ Note that our clustering reveals finer grained subdivision than is implied simpl
   * for example, our annotation does not specify memory and naive CD4+T subtypes
 * clustering algorithm over-splitting of functional cell types
 
-### Annotation caveats and future directions
+### Conclusions, caveats and future directions for cell type annotation
 
+* choosing between manual and automated annotation depends upon the availability and quality of a taxonomically and functionally relevant reference database
+  * the reference database should be:
+    * derived from similar tissues that will contain homologous cell types
+    * consist of expression data for genes with substantial overlap with the set of genes expressed in the query
+  * for model organisms, there are frequently high-quality atlas-quality references
+  * for non-model organisms, mapping to the reference of another species will:
+    * be impacted by evolutionary divergence, and there are questions about how the history of gene duplication and loss during intervening speciation events will impact accurate assignment of cell types
+    * require reconciling different gene symbols
 * building a reference database for annotating cell types is a non-trivial challenge
-* other "current" tools may not be adequately maintained and hard to implement
-  *the Seurat Azimuth method no longer appears to work, likely due to outdated reference file specifications
-* "best practice" for cell type annotation and is an area of active development
-* we expect that AI-based/transformer methods will likely factor prominently in the future
+* some "current" tools may not be adequately maintained and hard to implement
+  * the Seurat Azimuth method no longer appears to work, likely due to outdated reference file specifications
+  * "best practice" for cell type annotation and is an area of active development
+  * we expect that AI-based/transformer methods will likely factor prominently in the future
 
 
 
@@ -281,7 +296,7 @@ As we have demonstrated above, marker gene discovery for cell clusters *within* 
 
 Merging assumes that there are no batch effects other than the effects of the different experimental conditions. This might be the case where samples are taken from a cell line with one sample (or a set of samples) are exposed to a perturbation treatment, and a second sample (or set of samples) is an untreated control, and then scRNA-seq libraries are generated simultaneously for all the samples using the same chemistry, then multiplexed and sequenced. Merging in this case, involved concatenating the count matrices from the samples, while using the cell barcodes track which cells belong to which condition.
 
-##### Whent to integrate?
+##### When to integrate?
 
 Often times, a study is conducted in a manner in which batch effects that have nothing to do with the biological variation of interest are unavoidable. This typically is the case when you are merging data you have generated with previously published data (or data you have generated previously) using different experimental protocols, using different library chemistry, a different sequencing instrument, or some combination of all three. Batch integration involves a formal statistical procedure in which the samples are aligned together in low-dimensional space. Batch integration is still an active area of research as there is a well-known tradeoff between optimal removal of batch effects and preservation of biological variation. In other words, it is hard to completely remove batch effects without removing some biological variation--variation which might be relevant for the experiment that has been conducted! A good starting point for understanding the scope of the problem is [Luecken et al. 2022, Nature Methods](https://www.nature.com/articles/s41592-021-01336-8) which compares the performance of integration methods for atlas-scale data sets.
 
@@ -291,355 +306,463 @@ There are two complementary approaches for assessing whether integration
 is necessary:
 
 1. Construct a UMAP plot of a merged data set, with cells labelled by batch. Batch effects would be indicated by:
-  a.  poor mixing of batches across clusters
-  b.  clusters that are unique to a batch
+
+    a.  poor mixing of batches across clusters
+    b.  clusters that are unique to a batch
+  
 2.  Compute summary statistics that describe the degree of mixing between batches
 
 We will demonstrate both approaches below.
 
 ### Merging case study: male vs. female MOp brain regions
 
-For our first example, we will use two mouse samples that were used as part of the [Allen BrainAtlas](https://mouse.brain-map.org/static/atlas). Both comprise cells from the primary motor areas (MOp) of the brain, with libraries built from the same 10x v3 chemistry, and both mice have the same genotype.The only difference between them besides sex is that the female sample was harvested at 58 days, while the male sample was harvested at 61 days. We begin with, and test, the assumption that there should be little if any batch effect. To peform this test, we do the following:
+For our first example, we will use two sets of mouse samples that were used as part of the [Allen BrainAtlas](https://mouse.brain-map.org/static/atlas). Both comprise cells from the primary motor areas (MOp) of the brain, with libraries built from the same 10x v3 chemistry, and mice have the same genotype. We begin with, and test, the assumption that there should be little if any batch effect. To perform this test, we do the following:
 
 1. For each sample separately: 
-  a. remove ambient RNA contamination with SoupX
-  b. remove doublets with scDblFinder
-  c. manually filter out low count and high mtDNA% cells on reasonable thresholds
+   a. remove ambient RNA contamination with SoupX
+   b. remove doublets with scDblFinder
+   c. manually filter out low count and high mtDNA% cells on reasonable thresholds
 2. Then merge the samples
-  a. examine the UMAP plot
-  b. calculate LISI metric to quantify batch effects
+   a. examine the UMAP plot
+   b. calculate LISI metric to quantify batch effects
   
 #### Load data, create Seurat objects and run SoupX
+##### define data processing function
+
+``` r
+process_sample <- function(data_dir, prefix="sample") {
+  # Add this to see warnings immediately
+  options(warn = 1) 
+  
+  cat("--- Starting processing for prefix:", prefix, "---\n")
+  
+  # 1. Reading data
+  raw <- Seurat::Read10X(file.path(data_dir, "raw_feature_bc_matrix"))
+  filtered <- Seurat::Read10X(file.path(data_dir, "filtered_feature_bc_matrix"))
+  cat("1. Data loaded. Filtered matrix dimensions:", dim(filtered), "\n")
+
+  # 2. Initial Seurat object and processing
+  seurat <- CreateSeuratObject(counts = filtered)
+  seurat <- PercentageFeatureSet(seurat, pattern = "^mt-", col.name = "percent.mt")
+  seurat <- SCTransform(seurat, vars.to.regress = "percent.mt", verbose = FALSE)
+  seurat <- RunPCA(seurat, verbose = FALSE)
+  seurat <- RunUMAP(seurat, dims = 1:30)
+  seurat <- FindNeighbors(seurat, dims = 1:30)
+  seurat <- FindClusters(seurat)
+  cat("2. Initial Seurat object processed. Dimensions:", dim(seurat), "\n")
+  
+  # 3. SoupX correction
+  soup_channel <- SoupX::SoupChannel(tod = raw, toc = filtered, is10X = TRUE)
+  soup_channel <- SoupX::setClusters(soup_channel, clusters = as.factor(Idents(seurat)))
+  soup_channel <- SoupX::setDR(soup_channel, DR=Seurat::Embeddings(seurat, "umap"))
+  soup_channel <- SoupX::autoEstCont(soup_channel)
+  corrected_counts <- SoupX::adjustCounts(soup_channel, roundToInt=TRUE)
+  cat("3. SoupX correction complete. Corrected counts dimensions:", dim(corrected_counts), "\n")
+  
+  rm(raw, filtered, soup_channel, seurat); gc(verbose=FALSE)
+
+  # 4. Create SoupX object and run Doublet Finder
+  seurat_soupx <- CreateSeuratObject(counts = corrected_counts)
+  rm(corrected_counts); gc(verbose=FALSE)
+  
+  sce <- as.SingleCellExperiment(seurat_soupx)
+  cat("4a. Running scDblFinder...\n")
+  sce <- scDblFinder(sce)
+  cat("4b. scDblFinder finished. Assigning classes.\n")
+  
+  seurat_soupx$scDblFinder.class <- colData(sce)$scDblFinder.class
+  
+  # Check how many singlets vs doublets were found
+  cat("--- Doublet Finder Results ---\n")
+  print(table(seurat_soupx$scDblFinder.class))
+  cat("----------------------------\n")
+  
+  seurat_singlets <- subset(seurat_soupx, subset = scDblFinder.class == "singlet")
+  cat("4c. Subset to singlets. Dimensions:", dim(seurat_singlets), "\n")
+  
+  rm(seurat_soupx, sce); gc(verbose=FALSE)
+  
+  # 5. Final QC Filtering
+  seurat_singlets <- PercentageFeatureSet(seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
+  
+  # Check how many cells will pass the filter BEFORE you subset
+  pass_filter <- seurat_singlets$nFeature_RNA > 200 & seurat_singlets$nCount_RNA > 500 & seurat_singlets$percent.mt < 5
+  cat("--- Final QC Filter ---\n")
+  cat("Cells passing filter (nFeature > 200, nCount > 500, mt < 5):", sum(pass_filter), "out of", ncol(seurat_singlets), "\n")
+  cat("-----------------------\n")
+  
+  seurat_singlets_posthoc <- subset(seurat_singlets, subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
+  cat("5. Final object created. Dimensions:", dim(seurat_singlets_posthoc), "\n")
+  
+  # Check if the final object is NULL before returning
+  if (is.null(seurat_singlets_posthoc)) {
+    cat("!!! WARNING: Final object is NULL before returning.\n")
+  }
+  
+  cat("--- Function finished. Returning object. ---\n")
+  return(seurat_singlets_posthoc)
+}
+```
+
+##### generate processed sample seurat objects
+In addition to the pre-processing steps embedded in the `process_sample` function, we can add *sex*, *replicate* and *tissue* information to the metadata of each object.
 
 
 ``` r
-#### male1
-male1_raw <- Seurat::Read10X("data/mousebrain/male_MOp_L8TX_181211_01_G12/raw_feature_bc_matrix")
-male1_filtered <- Seurat::Read10X("data/mousebrain/male_MOp_L8TX_181211_01_G12/filtered_feature_bc_matrix") 
-
-male1_seurat<- CreateSeuratObject(counts = male1_filtered)
-male1_seurat <- PercentageFeatureSet(male1_seurat, pattern = "^mt-", col.name = "percent.mt")
-male1_seurat <- SCTransform(male1_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-male1_seurat <- RunPCA(male1_seurat, verbose = FALSE)
-male1_seurat <- RunUMAP(male1_seurat, dims = 1:30)
-male1_seurat <- FindNeighbors(male1_seurat, dims = 1:30)
-male1_seurat <- FindClusters(male1_seurat)
-
-male1_soup_channel <- SoupX::SoupChannel(tod = male1_raw,toc=male1_filtered,
-                is10X = TRUE)
-male1_soup_channel$tod<-male1_raw
-male1_soup_channel <- SoupX::setClusters(male1_soup_channel, 
-                                   clusters = as.factor(Idents(male1_seurat)))
-male1_soup_channel <- setDR(male1_soup_channel, 
-                DR=Seurat::Embeddings(male1_seurat, "umap"))
-male1_soup_channel <- autoEstCont(male1_soup_channel)
+male1_seurat_singlets_posthoc <- process_sample("data/mousebrain/male_MOp_L8TX_181211_01_G12/", "male1")
 ```
 
-``` r
-male1_corrected_counts <- adjustCounts(male1_soup_channel,roundToInt=TRUE)
-male1_seurat_soupx <- CreateSeuratObject(counts = male1_corrected_counts)
-
-male1_seurat <- NULL
-male1_corrected_counts <- NULL
-male1_soup_channel <- NULL
-male1_raw <-NULL
-male1_filtered <- NULL
-
-##### male2
-male2_raw <- Seurat::Read10X("data/mousebrain/457909/raw_feature_bc_matrix")
-male2_filtered <- Seurat::Read10X("data/mousebrain/457909/filtered_feature_bc_matrix") 
-
-male2_seurat<- CreateSeuratObject(counts = male2_filtered)
-male2_seurat <- PercentageFeatureSet(male2_seurat, pattern = "mt-", col.name = "percent.mt")
-male2_seurat <- SCTransform(male2_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-male2_seurat <- RunPCA(male2_seurat, verbose = FALSE)
-male2_seurat <- RunUMAP(male2_seurat, dims = 1:30)
-male2_seurat <- FindNeighbors(male2_seurat, dims = 1:30)
-male2_seurat <- FindClusters(male2_seurat)
-
-male2_soup_channel <- SoupX::SoupChannel(tod = male2_raw,toc=male2_filtered,
-                is10X = TRUE)
-male2_soup_channel$tod<-male2_raw
-male2_soup_channel <- SoupX::setClusters(male2_soup_channel, 
-                                   clusters = as.factor(Idents(male2_seurat)))
-male2_soup_channel <- setDR(male2_soup_channel, 
-                DR=Seurat::Embeddings(male2_seurat, "umap"))
-male2_soup_channel <- autoEstCont(male2_soup_channel)
+```
+## --- Starting processing for prefix: male1 ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 8913
 ```
 
-``` r
-male2_corrected_counts <- adjustCounts(male2_soup_channel,roundToInt=TRUE)
-male2_seurat_soupx <- CreateSeuratObject(counts = male2_corrected_counts)
-
-male2_seurat <- NULL
-male2_corrected_counts <- NULL
-male2_soup_channel <- NULL
-male2_raw <-NULL
-male2_filtered <- NULL
-
-##### female1
-female1_raw <- Seurat::Read10X("data/mousebrain/female_MOp_L8TX_181211_01_C01/raw_feature_bc_matrix")
-female1_filtered <- Seurat::Read10X("data/mousebrain/female_MOp_L8TX_181211_01_C01/filtered_feature_bc_matrix")  
-female1_seurat<- CreateSeuratObject(counts = female1_filtered)
-female1_seurat <- PercentageFeatureSet(female1_seurat, pattern = "^mt-", col.name = "percent.mt")
-female1_seurat <- SCTransform(female1_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-female1_seurat <- RunPCA(female1_seurat, verbose = FALSE)
-female1_seurat <- RunUMAP(female1_seurat, dims = 1:30)
-female1_seurat <- FindNeighbors(female1_seurat, dims = 1:30)
-female1_seurat <- FindClusters(female1_seurat)
-
-female1_soup_channel <- SoupX::SoupChannel(tod = female1_raw,toc=female1_filtered,
-                is10X = TRUE)
-female1_soup_channel$tod<-female1_raw
-female1_soup_channel <- SoupX::setClusters(female1_soup_channel, 
-                                   clusters = as.factor(Idents(female1_seurat)))
-female1_soup_channel <- setDR(female1_soup_channel, 
-                DR=Seurat::Embeddings(female1_seurat, "umap"))
-female1_soup_channel <- autoEstCont(female1_soup_channel)
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 8913
+## Number of edges: 287035
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9155
+## Number of communities: 20
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 23680 8913
 ```
 
-``` r
-female1_corrected_counts <- adjustCounts(female1_soup_channel,roundToInt=TRUE)
-female1_seurat_soupx <- CreateSeuratObject(counts = female1_corrected_counts)
-
-female1_seurat <- NULL
-female1_corrected_counts <- NULL
-female1_soup_channel <- NULL
-female1_raw <-NULL
-female1_filtered <- NULL
-
-##### female2
-female2_raw <- Seurat::Read10X("data/mousebrain/457911/raw_feature_bc_matrix")
-female2_filtered <- Seurat::Read10X("data/mousebrain/457911/filtered_feature_bc_matrix") 
-
-female2_seurat<- CreateSeuratObject(counts = female2_filtered)
-female2_seurat <- PercentageFeatureSet(female2_seurat, pattern = "^mt-", col.name = "percent.mt")
-female2_seurat <- SCTransform(female2_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-female2_seurat <- RunPCA(female2_seurat, verbose = FALSE)
-female2_seurat <- RunUMAP(female2_seurat, dims = 1:30)
-female2_seurat <- FindNeighbors(female2_seurat, dims = 1:30)
-female2_seurat <- FindClusters(female2_seurat)
-
-female2_soup_channel <- SoupX::SoupChannel(tod = female2_raw,toc=female2_filtered,
-                is10X = TRUE)
-female2_soup_channel$tod<-female2_raw
-female2_soup_channel <- SoupX::setClusters(female2_soup_channel, 
-                                   clusters = as.factor(Idents(female2_seurat)))
-female2_soup_channel <- setDR(female2_soup_channel, 
-                DR=Seurat::Embeddings(female2_seurat, "umap"))
-female2_soup_channel <- autoEstCont(female2_soup_channel)
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 8913
 ```
 
-``` r
-female2_corrected_counts <- adjustCounts(female2_soup_channel,roundToInt=TRUE)
-female2_seurat_soupx <- CreateSeuratObject(counts = female2_corrected_counts)
-
-female2_seurat <- NULL
-female2_corrected_counts <- NULL
-female2_soup_channel <- NULL
-female2_raw <-NULL
-female2_filtered <- NULL
-
-#### female3
-female3_raw <- Seurat::Read10X("data/mousebrain/500199/raw_feature_bc_matrix")
-female3_filtered <- Seurat::Read10X("data/mousebrain/500199/filtered_feature_bc_matrix") 
-
-female3_seurat<- CreateSeuratObject(counts = female3_filtered)
-female3_seurat <- PercentageFeatureSet(female3_seurat, pattern = "^mt-", col.name = "percent.mt")
-female3_seurat <- SCTransform(female3_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-female3_seurat <- RunPCA(female3_seurat, verbose = FALSE)
-female3_seurat <- RunUMAP(female3_seurat, dims = 1:30)
-female3_seurat <- FindNeighbors(female3_seurat, dims = 1:30)
-female3_seurat <- FindClusters(female3_seurat)
-
-female3_soup_channel <- SoupX::SoupChannel(tod = female3_raw,toc=female3_filtered,
-                is10X = TRUE)
-female3_soup_channel$tod<-female3_raw
-female3_soup_channel <- SoupX::setClusters(female3_soup_channel, 
-                                   clusters = as.factor(Idents(female3_seurat)))
-female3_soup_channel <- setDR(female3_soup_channel, 
-                DR=Seurat::Embeddings(female3_seurat, "umap"))
-female3_soup_channel <- autoEstCont(female3_soup_channel)
+```
+## 4a. Running scDblFinder...
 ```
 
-``` r
-female3_corrected_counts <- adjustCounts(female3_soup_channel,roundToInt=TRUE)
-female3_seurat_soupx <- CreateSeuratObject(counts = female3_corrected_counts)
-
-female3_seurat <- NULL
-female3_corrected_counts <- NULL
-female3_soup_channel <- NULL
-female3_raw <-NULL
-female3_filtered <- NULL
-
-#### male_cnupal
-male_cnupal_raw <- Seurat::Read10X("data/mousebrain/male_CNU-PAL_L8TX_190327_01_E04/raw_feature_bc_matrix")
-male_cnupal_filtered <- Seurat::Read10X("data/mousebrain/male_CNU-PAL_L8TX_190327_01_E04/filtered_feature_bc_matrix") 
-
-male_cnupal_seurat<- CreateSeuratObject(counts = male_cnupal_filtered)
-male_cnupal_seurat <- PercentageFeatureSet(male_cnupal_seurat, pattern = "^mt-", col.name = "percent.mt")
-male_cnupal_seurat <- SCTransform(male_cnupal_seurat, vars.to.regress = "percent.mt", verbose = FALSE)
-male_cnupal_seurat <- RunPCA(male_cnupal_seurat, verbose = FALSE)
-male_cnupal_seurat <- RunUMAP(male_cnupal_seurat, dims = 1:30)
-male_cnupal_seurat <- FindNeighbors(male_cnupal_seurat, dims = 1:30)
-male_cnupal_seurat <- FindClusters(male_cnupal_seurat)
-
-male_cnupal_soup_channel <- SoupX::SoupChannel(tod = male_cnupal_raw,toc=male_cnupal_filtered,
-                is10X = TRUE)
-male_cnupal_soup_channel$tod<-male_cnupal_raw
-male_cnupal_soup_channel <- SoupX::setClusters(male_cnupal_soup_channel, 
-                                   clusters = as.factor(Idents(male_cnupal_seurat)))
-male_cnupal_soup_channel <- setDR(male_cnupal_soup_channel, 
-                DR=Seurat::Embeddings(male_cnupal_seurat, "umap"))
-male_cnupal_soup_channel <- autoEstCont(male_cnupal_soup_channel)
 ```
-
-``` r
-male_cnupal_corrected_counts <- adjustCounts(male_cnupal_soup_channel,roundToInt=TRUE)
-male_cnupal_seurat_soupx <- CreateSeuratObject(counts = male_cnupal_corrected_counts)
-
-male_cnupal_seurat <- NULL
-male_cnupal_corrected_counts <- NULL
-male_cnupal_soup_channel <- NULL
-male_cnupal_raw <-NULL
-male_cnupal_filtered <- NULL
-rm(list = names(which(sapply(ls(), function(x) is.null(get(x))))))
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##    8186     727 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 8186 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 5870 out of 8186 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 5870 
+## --- Function finished. Returning object. ---
 ```
-
-#### Doublet removal with scDblFinder
-
-##### convert objects to SCE
-
-
-``` r
-sce_male1 <- as.SingleCellExperiment(male1_seurat_soupx)
-sce_male2 <- as.SingleCellExperiment(male2_seurat_soupx)
-sce_female1 <- as.SingleCellExperiment(female1_seurat_soupx)
-sce_female2 <- as.SingleCellExperiment(female2_seurat_soupx)
-sce_female3 <- as.SingleCellExperiment(female3_seurat_soupx)
-sce_malecnupal <- as.SingleCellExperiment(male_cnupal_seurat_soupx)
-```
-
-#### Run scDblFinder
-
-
-``` r
-sce_male1 <- scDblFinder(sce_male1)
-sce_male2 <- scDblFinder(sce_male2)
-sce_female1 <- scDblFinder(sce_female1)
-sce_female2 <- scDblFinder(sce_female2)
-sce_female3 <- scDblFinder(sce_female3)
-sce_malecnupal <- scDblFinder(sce_malecnupal)
-```
-
-##### Filter Seurat objects on singlet class
-
-
-``` r
-male1_seurat_soupx$scDblFinder.class <- colData(sce_male1)$scDblFinder.class
-male1_seurat_singlets <- subset(male1_seurat_soupx, subset = scDblFinder.class == "singlet")
-male1_seurat_soupx <-NULL
-
-male2_seurat_soupx$scDblFinder.class <- colData(sce_male2)$scDblFinder.class
-male2_seurat_singlets <- subset(male2_seurat_soupx, subset = scDblFinder.class == "singlet")
-male2_seurat_soupx <-NULL
-
-female1_seurat_soupx$scDblFinder.class <- colData(sce_female1)$scDblFinder.class
-female1_seurat_singlets <- subset(female1_seurat_soupx, subset = scDblFinder.class == "singlet")
-female1_seurat_soupx <-NULL
-
-female2_seurat_soupx$scDblFinder.class <- colData(sce_female2)$scDblFinder.class
-female2_seurat_singlets <- subset(female2_seurat_soupx, subset = scDblFinder.class == "singlet")
-female2_seurat_soupx <-NULL
-
-female3_seurat_soupx$scDblFinder.class <- colData(sce_female3)$scDblFinder.class
-female3_seurat_singlets <- subset(female3_seurat_soupx, subset = scDblFinder.class == "singlet")
-female3_seurat_soupx <-NULL
-
-male_cnupal_seurat_soupx$scDblFinder.class <- colData(sce_malecnupal)$scDblFinder.class
-male_cnupal_seurat_singlets <- subset(male_cnupal_seurat_soupx, subset = scDblFinder.class == "singlet")
-male_cnupal_seurat_soupx <-NULL
-
-sce_male1 <- NULL
-sce_male2 <- NULL
-sce_female1 <- NULL
-sce_female2 <- NULL
-sce_female3 <- NULL
-sce_male_cnupal <- NULL
-
-rm(list = names(which(sapply(ls(), function(x) is.null(get(x))))))
-```
-
-#### add mtDNA counts to object metadata
-
-
-``` r
-male1_seurat_singlets <- PercentageFeatureSet(male1_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-male2_seurat_singlets <- PercentageFeatureSet(male2_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-female1_seurat_singlets <- PercentageFeatureSet(female1_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-female2_seurat_singlets <- PercentageFeatureSet(female2_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-female3_seurat_singlets <- PercentageFeatureSet(female3_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-male_cnupal_seurat_singlets <- PercentageFeatureSet(male_cnupal_seurat_singlets, pattern = "^mt-", col.name = "percent.mt")
-```
-
-#### post hoc filtering
-
-In part 1 of this workshop, we demonstrated how to use median absolute
-deviations (MAD) for threshold-based filtering, but today we will simply
-use manually set filters:
-
-
-``` r
-male1_seurat_singlets_posthoc <- subset(male1_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-male2_seurat_singlets_posthoc <- subset(male2_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-female1_seurat_singlets_posthoc <- subset(female1_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-female2_seurat_singlets_posthoc <- subset(female2_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-female3_seurat_singlets_posthoc <- subset(female3_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-
-male_cnupal_seurat_singlets_posthoc <- subset(male_cnupal_seurat_singlets,subset = nFeature_RNA > 200 & nCount_RNA > 500 & percent.mt < 5)
-
-male1_seurat_singlets <- NULL
-male2_seurat_singlets <- NULL
-female1_seurat_singlets <- NULL
-female2_seurat_singlets <- NULL
-female3_seurat_singlets <- NULL
-male_cnupal_seurat_singlets <- NULL
-
-rm(list = names(which(sapply(ls(), function(x) is.null(get(x))))))
-```
-
-#### merge data sets
-
-##### add sex,replicate and tissue data to seurat objects
-
 
 ``` r
 male1_seurat_singlets_posthoc[["sex"]] <- "male"
 male1_seurat_singlets_posthoc[["replicate"]] <- 1
 male1_seurat_singlets_posthoc[["tissue"]] <- "mop"
+gc(verbose=FALSE)
+```
 
+```
+##             used  (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14405522 769.4   33090868 1767.3         NA   33090868  1767.3
+## Vcells 119144225 909.0  555654938 4239.4      18432 1695723839 12937.4
+```
+
+
+``` r
+male2_seurat_singlets_posthoc <- process_sample("data/mousebrain/457909/", "male2")
+```
+
+```
+## --- Starting processing for prefix: male2 ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 11345
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 11345
+## Number of edges: 359330
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9159
+## Number of communities: 24
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 22657 11345
+```
+
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 11345
+```
+
+```
+## 4a. Running scDblFinder...
+```
+
+```
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##   10335    1010 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 10335 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 8723 out of 10335 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 8723 
+## --- Function finished. Returning object. ---
+```
+
+``` r
 male2_seurat_singlets_posthoc[["sex"]] <- "male"
 male2_seurat_singlets_posthoc[["replicate"]] <- 2
 male2_seurat_singlets_posthoc[["tissue"]] <- "mop"
+gc(verbose=FALSE)
+```
 
+```
+##             used   (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14414971  769.9   33090868 1767.3         NA   33090868  1767.3
+## Vcells 180129572 1374.3  557151401 4250.8      18432 1695723839 12937.4
+```
+
+
+``` r
+female1_seurat_singlets_posthoc <- process_sample("data/mousebrain/female_MOp_L8TX_181211_01_C01/", "female1")
+```
+
+```
+## --- Starting processing for prefix: female1 ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 7564
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 7564
+## Number of edges: 248742
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9069
+## Number of communities: 19
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 21365 7564
+```
+
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 7564
+```
+
+```
+## 4a. Running scDblFinder...
+```
+
+```
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##    6963     601 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 6963 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 5769 out of 6963 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 5769 
+## --- Function finished. Returning object. ---
+```
+
+``` r
 female1_seurat_singlets_posthoc[["sex"]] <- "female"
 female1_seurat_singlets_posthoc[["replicate"]] <- 1
 female1_seurat_singlets_posthoc[["tissue"]] <- "mop"
+gc(verbose=FALSE)
+```
 
+```
+##             used   (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14420866  770.2   33090868 1767.3         NA   33090868  1767.3
+## Vcells 223051370 1701.8  710126746 5417.9      18432 1695723839 12937.4
+```
+
+
+``` r
+female2_seurat_singlets_posthoc <- process_sample("data/mousebrain/457911/", "female2")
+```
+
+```
+## --- Starting processing for prefix: female2 ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 9711
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 9711
+## Number of edges: 307827
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9099
+## Number of communities: 22
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 22206 9711
+```
+
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 9711
+```
+
+```
+## 4a. Running scDblFinder...
+```
+
+```
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##    8705    1006 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 8705 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 7386 out of 8705 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 7386 
+## --- Function finished. Returning object. ---
+```
+
+``` r
 female2_seurat_singlets_posthoc[["sex"]] <- "female"
 female2_seurat_singlets_posthoc[["replicate"]] <- 2
 female2_seurat_singlets_posthoc[["tissue"]] <- "mop"
+gc(verbose=FALSE)
+```
 
+```
+##             used   (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14428352  770.6   33090868 1767.3         NA   33090868  1767.3
+## Vcells 275895093 2105.0  905020371 6904.8      18432 1767609894 13485.8
+```
+
+
+``` r
+female3_seurat_singlets_posthoc <- process_sample("data/mousebrain/500199/", "female3")
+```
+
+```
+## --- Starting processing for prefix: female3 ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 10533
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 10533
+## Number of edges: 333613
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9348
+## Number of communities: 29
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 23152 10533
+```
+
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 10533
+```
+
+```
+## 4a. Running scDblFinder...
+```
+
+```
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##    9584     949 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 9584 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 7379 out of 9584 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 7379 
+## --- Function finished. Returning object. ---
+```
+
+``` r
 female3_seurat_singlets_posthoc[["sex"]] <- "female"
 female3_seurat_singlets_posthoc[["replicate"]] <- 3
 female3_seurat_singlets_posthoc[["tissue"]] <- "mop"
+gc(verbose=FALSE)
+```
 
+```
+##             used   (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14435859  771.0   33090868 1767.3         NA   33090868  1767.3
+## Vcells 338267776 2580.8  961064797 7332.4      18432 1877079663 14321.0
+```
+
+
+``` r
+male_cnupal_seurat_singlets_posthoc <-process_sample("data/mousebrain/male_CNU-PAL_L8TX_190327_01_E04/","male_cnupal")
+```
+
+```
+## --- Starting processing for prefix: male_cnupal ---
+## 1. Data loaded. Filtered matrix dimensions: 32285 18173
+```
+
+```
+## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 18173
+## Number of edges: 504167
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9236
+## Number of communities: 33
+## Elapsed time: 0 seconds
+## 2. Initial Seurat object processed. Dimensions: 24411 18173
+```
+
+```
+## 3. SoupX correction complete. Corrected counts dimensions: 32285 18173
+```
+
+```
+## 4a. Running scDblFinder...
+```
+
+```
+## 4b. scDblFinder finished. Assigning classes.
+## --- Doublet Finder Results ---
+## 
+## singlet doublet 
+##   16084    2089 
+## ----------------------------
+## 4c. Subset to singlets. Dimensions: 32285 16084 
+## --- Final QC Filter ---
+## Cells passing filter (nFeature > 200, nCount > 500, mt < 5): 12119 out of 16084 
+## -----------------------
+## 5. Final object created. Dimensions: 32285 12119 
+## --- Function finished. Returning object. ---
+```
+
+``` r
 male_cnupal_seurat_singlets_posthoc[["sex"]] <- "male"
 male_cnupal_seurat_singlets_posthoc[["replicate"]] <- 1
 male_cnupal_seurat_singlets_posthoc[["tissue"]] <- "cnupal"
+gc(verbose=FALSE)
 ```
 
-##### merge objects
+```
+##             used   (Mb) gc trigger   (Mb) limit (Mb)   max used    (Mb)
+## Ncells  14448157  771.7   33090868 1767.3         NA   33090868  1767.3
+## Vcells 396606930 3025.9 1235799105 9428.4      18432 2413670018 18414.9
+```
+
+
+#### merge data sets
 
 
 ``` r
@@ -712,11 +835,11 @@ downsamp_mop_merged <- FindClusters(downsamp_mop_merged)
 ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 ## 
 ## Number of nodes: 15000
-## Number of edges: 489048
+## Number of edges: 486792
 ## 
 ## Running Louvain algorithm...
-## Maximum modularity in 10 random starts: 0.9121
-## Number of communities: 26
+## Maximum modularity in 10 random starts: 0.9114
+## Number of communities: 24
 ## Elapsed time: 1 seconds
 ```
 
@@ -726,182 +849,82 @@ downsamp_mop_merged <- FindClusters(downsamp_mop_merged)
 ``` r
 bysexplot<-DimPlot(downsamp_mop_merged, reduction = "umap", group.by = c("sex"),alpha=0.3)
 byclusterplot<-DimPlot(downsamp_mop_merged, reduction = "umap",label=TRUE)
-bysexreplicateplot<-DimPlot(downsamp_mop_merged, reduction = "umap",group.by=c("sex_replicate"))
-bysexplot
+print(bysexplot + byclusterplot)
 ```
 
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
-``` r
-byclusterplot
-```
-
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-27-2.png)<!-- -->
-
-``` r
-bysexreplicateplot
-```
-
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-27-3.png)<!-- -->
+#### quantify batch effects
 
 While the UMAP plot on the left suggests there is overall good mixing between male and female samples, such that batch effects might not be a big problem, it is notable that the large cluster at the center of the plot seems to have a few continuous bands of male cells at its periphery, and at the center of the cluster as well. We have downsampled all samples to the same number of cells, such that the male-specific aggregations at the periphery of clusters cannot simply be due to having sampled more cells from male samples.In fact, we have sampled more female samples than male samples, so one might expect the opposite pattern to hold. That said, the UMAP method tends to inflate the distance between clusters, such that any clusters that are dominated by cells from one batch may superficially inflate the degree of a batch effect. 
 
+Besides inferring batch effects from the UMAP plot, it is advisable to use a statistical approach to quantify the batch effect. One useful statistic is the *local inverse Simpson's index* aka *LISI*. 
 
-#### Differential expression testing
+**Properties of LISI:** 
 
-There are two types of differential expression analysis one is
-interested in:
-
-1.  tests that look for conserved cell type markers regardless of the experimental condition those cells belong to. This involves using the `FindConservedMarkers()` function in Seurat, which, for the cluster of interest, performs separate differential expression tests for each experimental condition (in our case, sex) and then uses a meta-analysis approach implemented in the R *MetaDE* package for combining p-values. This is analogous to marker gene discovery (as demonstrated above) but combining the results of condition-specific tests.
-
-2. tests that look for DE within clusters across conditions, analogous to what one normally does with bulk RNA-seq data. This involves: 
-  a."pseudo-bulking", such that for each replicate/sample, for each defined cluster of cells, for each gene, counts for that gene are summed. This prouduces a single count per gene per replicate. then
-  b. DE testing, often using statistical models that are employed with bulk RNA-seq, e.g. `DESeq2`.
-
-##### Look for conserved markers for cluster 0
-
-To use the SCT-transformed counts for downstream differential expression tests, one has to generated counts from the SCT-transformed values, effectively reversing the SCT regression model, so at to populate the `counts` and `data` slots in `SCT` assay, with the former being corrected counts that represent a conversion-to-count of the SCTransformed values. We do this with Seurat's `PrepSCTFindMarkers()` function.
-
-
-``` r
-options(future.globals.maxSize = 8 * 1024^3)
-downsamp_mop_merged <- PrepSCTFindMarkers(downsamp_mop_merged, verbose = FALSE)
-```
-
-Then, to find conserved makers for a cluster (in our example, cluster 0) such that expression differences between that cluster and all other cells is conserved across sexes, we can do the following
-
-
-``` r
-Idents(downsamp_mop_merged)<- "seurat_clusters"
-cluster0_conserved_markers <- FindConservedMarkers(downsamp_mop_merged, ident.1 = 0, grouping.var = "sex", assay = "SCT",verbose = FALSE)
-head(cluster0_conserved_markers)
-```
-
-```
-##         male_p_val male_avg_log2FC male_pct.1 male_pct.2 male_p_val_adj
-## Stard8           0        3.236120      0.882      0.165              0
-## Prex1            0        2.802730      0.918      0.226              0
-## Calb1            0        2.656055      0.912      0.220              0
-## Gucy1a1          0        2.854776      0.904      0.237              0
-## Tesc             0        2.515893      0.923      0.266              0
-## Lamp5            0        2.221590      0.976      0.409              0
-##         female_p_val female_avg_log2FC female_pct.1 female_pct.2
-## Stard8             0          3.149816        0.859        0.166
-## Prex1              0          2.690153        0.908        0.250
-## Calb1              0          2.661769        0.908        0.186
-## Gucy1a1            0          2.644162        0.873        0.239
-## Tesc               0          2.272215        0.912        0.293
-## Lamp5              0          2.132868        0.954        0.391
-##         female_p_val_adj max_pval minimump_p_val
-## Stard8                 0        0              0
-## Prex1                  0        0              0
-## Calb1                  0        0              0
-## Gucy1a1                0        0              0
-## Tesc                   0        0              0
-## Lamp5                  0        0              0
-```
-
-The output of `FindConservedMarkers` includes all the fields you'd expect with `FindMarkers()` and in addition, *minimump_p_vale* which is the combined p-value.
-
-##### Differential expression within clusters between sexes
-
-In our merged, downsampled Seurat object `downsamp_mop_merged`, we have three replicates for female MOp and two for males. The robust approach for testing for DE within clusters is to do *pseudobulking*, where for each sample, counts for each cell within a cluster are aggregated. Then tools such as `DESeq2` can be used in a manner analogous to bulk RNA-seq analysis. Note that, as with the implementation of `FindConservedMarkers()`, we can use the counts back-calculated from the SCTransformed data, rather than the raw, unnormalized counts.
-
-
-``` r
-pseudobulk_counts <- AggregateExpression(downsamp_mop_merged, return.seurat = T,
-                                           assays = "SCT",
-                                           slot = "counts",
-                                           group.by = c("seurat_clusters","sex_replicate"))
-```
-
-Prior to DE testing, we need to add a *sex* variable back into the `pseudobulk_counts`, as all that exists is `sex_replicate`.
-
-
-``` r
-sex <- mutate(as_tibble(pseudobulk_counts@meta.data),sex = str_remove(sex_replicate, "-.*")) %>% select(sex)
-pseudobulk_counts$sex <- sex$sex
-```
-
-Now, we can do DE testing for cluster 0. Note that Seurat's `AggregateExpression` function puts a "g" before the cluster labels, so this has to be added when subsetting the data. Also note, the Seurat default is to have a minimum number of replicates set to 3, and will throw an error if there are fewer replicates, as with the case for our two male samples. There are methodological performance issues with so few replicates, but for the purpose of demonstration, we can still use the `DESeq2` model, by setting `min.cells.group = 2`. Remember too, the default assay is *SCT* so we are using the SCT-converted counts for testing as when we find conserved markers (above). To do DE testing within a cluster, we can subset the data, and then run `FindMarkers`, doing so in a way that contrasts the specified conditions:
+* This metric is based upon probabilities that two randomly sampled cells come from different batches (in our case, male or female). 
+* The score is calculated for each cell and ranges from 1 to the total number of batches
+  * a score 1 means poor mixing
+  * a value closer to the number of hypothetical batches (2 in the case of the sex variable) indicates good mixing (and minimal batch effect)
+* We use the `reticulate` library to calculate LISI in python, specifically using the `harmonypy` package.
+* We calculate the mean of the cell-specific LISI scores to estimate the strength of the batch effect
 
 
 
 ``` r
-cluster0_pseudobulk <- subset(pseudobulk_counts, seurat_clusters == "g0")
-  Idents(cluster0_pseudobulk) <- "sex"
-cluster0_de_markers <- FindMarkers(cluster0_pseudobulk, ident.1 = "male", ident.2 = "female", slot = "counts", test.use = "DESeq2", min.cells.group = 2, verbose = F)
-head(cluster0_de_markers)
+library(reticulate)
+use_condaenv("r-lisi", conda="/Users/adamfreedman/miniforge3/bin/conda", required = TRUE)
+py_discover_config()
 ```
 
 ```
-##                p_val avg_log2FC pct.1 pct.2    p_val_adj
-## Xist    6.644944e-23 -3.7768126     0     1 1.474779e-18
-## Ddx3y   8.856161e-20  1.7217314     1     0 1.965536e-15
-## Uty     1.648811e-19  1.6754842     1     0 3.659370e-15
-## Eif2s3y 2.110938e-19  1.6739161     1     0 4.685017e-15
-## Tsix    2.479584e-17 -0.1174559     1     1 5.503189e-13
-## Kdm5d   1.152393e-15  1.1881395     1     0 2.557620e-11
-```
-
-And then we can make a nice volcano plot!
-
-
-``` r
-library(ggrepel)
-cluster0_de_markers$gene <- rownames(cluster0_de_markers)
-volcano_plot<- ggplot(cluster0_de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size = 0.5, alpha = 0.5) + theme_bw() +
-      ylab("-log10(unadjusted p-value)") + geom_text_repel(aes(label = ifelse(p_val_adj < 0.01, gene,
-      "")), colour = "red", size = 3)
-volcano_plot
-```
-
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-33-1.png)<!-- -->
-
-We can use the same `FindMarkers()` function to do differential expression testing across conditions. Remember, the default assay is *SCT* so we are using the SCT-converted counts for testing as when we find conserved markers (above).
-
-An alternative code implementation, and which won't require subsetting for additional cluster tests would be to set a composite variable for cluster+sex, then set that variable with `Idents`, then use the composite variable for specifying the groups for which to test for DE:
-
-
-``` r
-pseudobulk_counts$cluster.sex <- paste(pseudobulk_counts$seurat_clusters, pseudobulk_counts$sex, sep = "_")
-Idents(pseudobulk_counts) <- pseudobulk_counts$cluster.sex
-cluster0_de_markers_alt <- FindMarkers(pseudobulk_counts, ident.1 = "g0_male", ident.2 = "g0_female", slot = "counts", test.use = "DESeq2", min.cells.group = 2, verbose = F)
-```
-
-```
-## converting counts to integer mode
-```
-
-```
-## gene-wise dispersion estimates
-```
-
-```
-## mean-dispersion relationship
-```
-
-```
-## final dispersion estimates
+## python:         /Users/adamfreedman/miniforge3/envs/r-lisi/bin/python
+## libpython:      /Users/adamfreedman/miniforge3/envs/r-lisi/lib/libpython3.8.dylib
+## pythonhome:     /Users/adamfreedman/miniforge3/envs/r-lisi:/Users/adamfreedman/miniforge3/envs/r-lisi
+## version:        3.8.20 | packaged by conda-forge | (default, Sep 30 2024, 17:48:42)  [Clang 17.0.6 ]
+## numpy:          /Users/adamfreedman/miniforge3/envs/r-lisi/lib/python3.8/site-packages/numpy
+## numpy_version:  1.24.4
+## 
+## NOTE: Python version was forced by use_python() function
 ```
 
 ``` r
-head(cluster0_de_markers_alt)
+py_run_string("import harmonypy")
+
+merged_obj <- downsamp_mop_merged
+reduction_to_use <- "pca" 
+batch_variable <- list("sex")
+embeddings <- Embeddings(merged_obj, reduction = reduction_to_use)
+metadata <- merged_obj@meta.data
+lisi_module <- import("harmonypy.lisi")
+lisi_scores <- lisi_module$compute_lisi(
+  X = embeddings,
+  metadata = metadata,
+  label_colnames = c(batch_variable),
+  perplexity = 30L
+)
+lisi_col_name <- paste0(batch_variable, "_LISI")
+merged_obj[[lisi_col_name]] <- as.numeric(lisi_scores)
+message(paste("LISI scores added to metadata column:", lisi_col_name))
 ```
 
 ```
-##                p_val avg_log2FC pct.1 pct.2    p_val_adj
-## Xist    6.644944e-23 -3.7768126     0     1 1.474779e-18
-## Ddx3y   8.856161e-20  1.7217314     1     0 1.965536e-15
-## Uty     1.648811e-19  1.6754842     1     0 3.659370e-15
-## Eif2s3y 2.110938e-19  1.6739161     1     0 4.685017e-15
-## Tsix    2.479584e-17 -0.1174559     1     1 5.503189e-13
-## Kdm5d   1.152393e-15  1.1881395     1     0 2.557620e-11
+## LISI scores added to metadata column: sex_LISI
 ```
 
-#### Integration case study
+``` r
+message(paste("Mean LISI score for merged data is",mean(merged_obj@meta.data$sex_LISI)))
+```
 
-To demonstrate how to do integration, we will consider a subset of our samples, namely 1 male MOp brain region sample and another male sample from the CNU-PAL region.
+```
+## Mean LISI score for merged data is 1.67114530677422
+```
+
+This score is consistent with the presence of mild batch effects, which is not entirely consistent with what we observe in the UMAP plot. In such cases, while it might be useful to try integration, there is also the possibility that batch effect correction will inadvertently remove real biological variation.
+
+### Integration case study
+
+To demonstrate how to do integration, we will consider a subset of our samples, namely 1 male MOp brain region sample and another male sample from the caudal nucleus of the pallidum (CNU-PAL) region.
 
 
 ``` r
@@ -930,11 +953,11 @@ downsamp_mop_cnupal_merged <- FindClusters(downsamp_mop_cnupal_merged)
 ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 ## 
 ## Number of nodes: 6000
-## Number of edges: 209331
+## Number of edges: 214928
 ## 
 ## Running Louvain algorithm...
-## Maximum modularity in 10 random starts: 0.9179
-## Number of communities: 29
+## Maximum modularity in 10 random starts: 0.9155
+## Number of communities: 26
 ## Elapsed time: 0 seconds
 ```
 
@@ -943,78 +966,9 @@ bytissueplot<-DimPlot(downsamp_mop_cnupal_merged, reduction = "umap", group.by =
 bytissueplot
 ```
 
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
 
-There are rather pronounced batch effects by tissue ... which we might expect given likely tissue-specific cell type composition and expression profiles. One could simply proceed with integration, but it is worth using a quantitative metric to summarize the magnitude of batch effects, such as *LISI*.
-
-##### quantitative assessment of batch effects
-After visualization with UMAP, it is advised to use a statistical approach to quantify the batch effect. One useful statistic is the *local inverse Simpson's index* aka *LISI*. This metric is based upon probabilities that two randomly sampled cells come from different batches (in our case, male or female). The score is calculated for each cell and ranges from 1 to the total number of batches, with 1 meaning poor mixing and a value closer to the number of batches indicative of good mixing (and minimal batch effect). We need to use the `reticulate` library to calculate LISI in python, specifically using the `harmonypy` package. 
-
-
-
-``` r
-library(reticulate)
-use_condaenv("r-lisi", conda="/Users/adamfreedman/miniforge3/bin/conda", required = TRUE)
-py_discover_config()
-```
-
-```
-## python:         /Users/adamfreedman/miniforge3/envs/r-lisi/bin/python
-## libpython:      /Users/adamfreedman/miniforge3/envs/r-lisi/lib/libpython3.8.dylib
-## pythonhome:     /Users/adamfreedman/miniforge3/envs/r-lisi:/Users/adamfreedman/miniforge3/envs/r-lisi
-## version:        3.8.20 | packaged by conda-forge | (default, Sep 30 2024, 17:48:42)  [Clang 17.0.6 ]
-## numpy:          /Users/adamfreedman/miniforge3/envs/r-lisi/lib/python3.8/site-packages/numpy
-## numpy_version:  1.24.4
-## 
-## NOTE: Python version was forced by use_python() function
-```
-
-``` r
-py_run_string("import harmonypy")
-```
-
-
-``` r
-unintegrated_obj <- downsamp_mop_cnupal_merged
-reduction_to_use <- "pca" 
-batch_variable <- list("tissue")
-embeddings <- Embeddings(unintegrated_obj, reduction = reduction_to_use)
-metadata <- unintegrated_obj@meta.data
-lisi_module <- import("harmonypy.lisi")
-message("Calculating LISI... This may take a moment.")
-```
-
-```
-## Calculating LISI... This may take a moment.
-```
-
-``` r
-lisi_scores <- lisi_module$compute_lisi(
-  X = embeddings,
-  metadata = metadata,
-  label_colnames = c(batch_variable),
-  perplexity = 30L
-)
-lisi_col_name <- paste0(batch_variable, "_LISI")
-unintegrated_obj[[lisi_col_name]] <- as.numeric(lisi_scores)
-message(paste("LISI scores added to metadata column:", lisi_col_name))
-```
-
-```
-## LISI scores added to metadata column: tissue_LISI
-```
-
-``` r
-message(paste("Mean LISI score for unintgrated ata is",mean(unintegrated_obj@meta.data$tissue_LISI)))
-```
-
-```
-## Mean LISI score for unintgrated ata is 1.02247557258345
-```
-This score is close to 1 indicating a very strong batch effect in the un-integrated data, i.e. on average any cell's neighborhood only contains one batch, i.e. the batch it belongs to. Thus, integration is crucial.
-
-
-As an example of how to do this, we can wrap integration using the CCA method.  
+There are rather pronounced batch effects by tissue ... which we might expect given likely tissue-specific cell type composition and expression profiles. Thus, it is important to proceed with using a formal integration method that essentially aims to "align" clusters generate for the respective samples.
 
 **NOTE**: not all integration methods work well for all tasks, and so it is worth exploring options if a method produces poor results. While Harmony integration is known to do well for simple integration tasks, a test run using this method on this data set generated a very poor integration, with clear batch effects retained in the UMAP plot.
 
@@ -1030,17 +984,6 @@ integrated_downsamp_mop_cnupal <- IntegrateLayers(object = downsamp_mop_cnupal_m
     verbose = FALSE)
 
 integrated_downsamp_mop_cnupal <- FindNeighbors(integrated_downsamp_mop_cnupal, reduction = "integrated.cca", dims = 1:30)
-```
-
-```
-## Computing nearest neighbor graph
-```
-
-```
-## Computing SNN
-```
-
-``` r
 integrated_downsamp_mop_cnupal <- FindClusters(integrated_downsamp_mop_cnupal, resolution = 1)
 ```
 
@@ -1048,63 +991,25 @@ integrated_downsamp_mop_cnupal <- FindClusters(integrated_downsamp_mop_cnupal, r
 ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 ## 
 ## Number of nodes: 6000
-## Number of edges: 187718
+## Number of edges: 186302
 ## 
 ## Running Louvain algorithm...
-## Maximum modularity in 10 random starts: 0.8755
-## Number of communities: 28
+## Maximum modularity in 10 random starts: 0.8694
+## Number of communities: 25
 ## Elapsed time: 0 seconds
 ```
 
 ``` r
 integrated_downsamp_mop_cnupal <- RunUMAP(integrated_downsamp_mop_cnupal, dims = 1:30, reduction = "integrated.cca")
-```
 
-```
-## 19:49:03 UMAP embedding parameters a = 0.9922 b = 1.112
-```
-
-```
-## 19:49:03 Read 6000 rows and found 30 numeric columns
-```
-
-```
-## 19:49:03 Using Annoy for neighbor search, n_neighbors = 30
-```
-
-```
-## 19:49:03 Building Annoy index with metric = cosine, n_trees = 50
-```
-
-```
-## 0%   10   20   30   40   50   60   70   80   90   100%
-```
-
-```
-## [----|----|----|----|----|----|----|----|----|----|
-```
-
-```
-## **************************************************|
-## 19:49:03 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmphX7GWS/file17f925b0c782f
-## 19:49:03 Searching Annoy index using 1 thread, search_k = 3000
-## 19:49:04 Annoy recall = 100%
-## 19:49:04 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 19:49:05 Initializing from normalized Laplacian + noise (using RSpectra)
-## 19:49:05 Commencing optimization for 500 epochs, with 247128 positive edges
-## 19:49:05 Using rng type: pcg
-## 19:49:09 Optimization finished
-```
-
-``` r
 cca_integrate_umapplot <- DimPlot(integrated_downsamp_mop_cnupal, reduction = "umap", group.by = c("tissue"))
 cca_cluster_integrate_umapplot <- DimPlot(integrated_downsamp_mop_cnupal, reduction = "umap",label=TRUE)
 cca_cluster_integrate_umapplot + cca_integrate_umapplot 
 ```
 
-![](SinglecellRNAseq_part2_v2_files/figure-html/unnamed-chunk-38-1.png)<!-- -->
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
 
-While some of the batch effects have been corrected, there still appear to be substantial portions of the UMAP plot that are restricted to a particular tissue type. **This might very well be due to underlying biology and differences in cell type composition!**. We can calculate LISI for the integrate data to quantify the remaining degree of batch effect:
+While some of the batch effects have been corrected, there still appear to be substantial portions of the UMAP plot that are restricted to a particular tissue type. **This might very well be due to underlying biology and differences in cell type composition!** As with the merged data set, we can calculate the LISI index:
 
 
 ``` r
@@ -1114,14 +1019,6 @@ batch_variable <- list("tissue")
 embeddings <- Embeddings(integrated_obj, reduction = reduction_to_use)
 metadata <- integrated_obj@meta.data
 lisi_module <- import("harmonypy.lisi")
-message("Calculating LISI... This may take a moment.")
-```
-
-```
-## Calculating LISI... This may take a moment.
-```
-
-``` r
 lisi_scores <- lisi_module$compute_lisi(
   X = embeddings,
   metadata = metadata,
@@ -1138,60 +1035,180 @@ message(paste("LISI scores added to metadata column:", lisi_col_name))
 ```
 
 ``` r
-message(paste("Mean LISI score for intgrated ata is",mean(integrated_obj@meta.data$tissue_LISI)))
+message(paste("Mean LISI score for intgrated data is",mean(integrated_obj@meta.data$tissue_LISI)))
 ```
 
 ```
-## Mean LISI score for intgrated ata is 1.13677987175341
+## Mean LISI score for intgrated data is 1.1535355848256
 ```
-Indeed, as the UMAP suggested, batch effect correction was not all that successful. **If we were confident that integration had sufficiently corrected the batch effects, and if we had multiple replicates per biological condition, we could proceed with differential expression testing in the same fashion as we did above on the merged data**.
+Indeed, as the UMAP suggested, batch effect correction was not all that successful. **If we were confident that integration had sufficiently corrected the batch effects, and if we had multiple replicates per biological condition, we could proceed with differential expression testing. (Note that, in principal, one might want to calculate LISI on both your merged, un-integrated data and your integrated data to compare scores, or across multiple different integration methods to see which does the best job of removing batch effects) 
 
-**But**, the poor outcome of integration leads to the following questions:
+The poor outcome of integration of the MOp and CNU-PAL samples leads to the following questions: 
 
-1. Should we even try to integrate data from distinct brain regions?
+1. should we even try to integrate data from distinct brain regions?
 2. How much do batch effects have to be corrected to insure that downstream analyses are robust?
-  a. Given *n* batches we are trying to integrate, is there a particular LISI score threshold (given a theoretical range of 1 to *n*) below which we should not do further analyses? 
-
-#### The case of unreplicated conditions
-While not ideal, there may be cases where one does not have biological replicates for each condition. For example, if integration between the male MOp and CNU-PAL brain regions had been successful, and that was all the preliminary data you had, is there a way to assess differential expression between these brain regions? One can't take a pseudo-bulking approach, because there are no replicates from which to aggregate expression. Instead, one can only use `FindMarkers` in a manner such that cells are treated as replicates--in the same way in which DE testing is done between clusters to identify marker genes for clusters. One could do this:
+   a. Given *n* batches we are trying to integrate, is there a particular LISI score threshold (given a theoretical range of 1 to *n*) below which we should not do further analyses?
+   b. **NOTE*: it remains an open question what LISI score value represents a level of batch effects that is acceptable for downstream analyses
 
 
-``` r
-options(future.globals.maxSize = 2 * 1024^3)
-integrated_downsamp_mop_cnupal <- PrepSCTFindMarkers(integrated_downsamp_mop_cnupal,verbose=TRUE)
-```
+### Downstream analysis
 
-```
-## Found 2 SCT models. Recorrecting SCT counts using minimum median counts: 1377.5
-```
+#### Looking for conserved markers across clusters
+For our merged data set consisting male and female MOp samples, we detect mild batch effects. While one could argue whether integration would lead to more robust results, for the purpose of this workshop we will proceed with downstream analysis. First, we can use similar differential expression testing machinery that is employed to identify marker genes with the `FindMarkers` function, to search for cell type markers regardless of the experimental condition to which those cells belong. This involves using the `FindConservedMarkers()` function in Seurat, which, for the cluster of interest, performs separate differential expression tests for each experimental condition (in our case, sex) and then uses a meta-analysis approach implemented in the R *MetaDE* package for combining p-values. This is analogous to marker gene discovery (as demonstrated above) but combining the results of condition-specific tests.
+
+##### Look for conserved markers for cluster 0
+
+To use the SCT-transformed counts for downstream differential expression tests, one has to generated counts from the SCT-transformed values, effectively reversing the SCT regression model, so at to populate the `counts` and `data` slots in `SCT` assay, with the former being corrected counts that represent a conversion-to-count of the SCTransformed values. We do this with Seurat's `PrepSCTFindMarkers()` function.
 
 
 ``` r
-integrated_downsamp_mop_cnupal$cluster_tissue <- paste(integrated_downsamp_mop_cnupal$seurat_clusters, integrated_downsamp_mop_cnupal$tissue, sep = "_")
-Idents(integrated_downsamp_mop_cnupal) <- "cluster_tissue"
-de_genes_cluster5 <- FindMarkers(
-  integrated_downsamp_mop_cnupal,
-  ident.1 = "5_mop",  
-  ident.2 = "5_cnupal",
-  verbose = FALSE
-)
-head(de_genes_cluster5)
+options(future.globals.maxSize = 8 * 1024^3)
+downsamp_mop_merged <- PrepSCTFindMarkers(downsamp_mop_merged, verbose = FALSE)
+```
+
+Then, to find conserved makers for a cluster (in our example, cluster 0) such that expression differences between that cluster and all other cells is conserved across sexes, we can use the counts extracted from the SCT-corrected data to search for conserved cell type markers:
+
+
+``` r
+Idents(downsamp_mop_merged)<- "seurat_clusters"
+cluster0_conserved_markers <- FindConservedMarkers(downsamp_mop_merged, ident.1 = 0, grouping.var = "sex", assay = "SCT",verbose = FALSE)
+head(cluster0_conserved_markers)
 ```
 
 ```
-##                 p_val avg_log2FC pct.1 pct.2    p_val_adj
-## Tmem178b 2.030930e-75  -8.737610     0     1 4.546034e-71
-## Sema6a   2.030930e-75  -8.737610     0     1 4.546034e-71
-## Gad1     2.044068e-75  -8.889613     0     1 4.575441e-71
-## Pcp4l1   2.052872e-75  -9.567685     0     1 4.595150e-71
-## Lingo2   2.052872e-75  -9.655147     0     1 4.595150e-71
-## Erbb4    2.059943e-75 -12.362100     0     1 4.610977e-71
+##         male_p_val male_avg_log2FC male_pct.1 male_pct.2 male_p_val_adj
+## Stard8           0        3.255140      0.899      0.170              0
+## Calb1            0        2.628230      0.922      0.218              0
+## Prex1            0        2.767073      0.928      0.230              0
+## Gucy1a1          0        2.777206      0.906      0.243              0
+## Tesc             0        2.471780      0.927      0.273              0
+## Lratd1           0        2.764806      0.782      0.176              0
+##         female_p_val female_avg_log2FC female_pct.1 female_pct.2
+## Stard8             0          3.108056        0.892        0.172
+## Calb1              0          2.590179        0.904        0.192
+## Prex1              0          2.663351        0.908        0.251
+## Gucy1a1            0          2.583198        0.879        0.243
+## Tesc               0          2.353607        0.923        0.292
+## Lratd1             0          2.669448        0.813        0.202
+##         female_p_val_adj max_pval minimump_p_val
+## Stard8                 0        0              0
+## Calb1                  0        0              0
+## Prex1                  0        0              0
+## Gucy1a1                0        0              0
+## Tesc                   0        0              0
+## Lratd1                 0        0              0
 ```
 
-**HOWEVER**...this is **NOT** the statistically most robust approach as:
 
-* cells (with noisy counts) are treated as replicates
-* lack of independence between cells means p-values are not necessarily accurate
-* there is no way to determine how representative the one sample representing male or female of other individuals of that sex
+The output of `FindConservedMarkers` includes all the fields you'd expect with `FindMarkers()` and in addition, *minimump_p_vale* which is the combined p-value.
 
-### Conclusions/Future directions
+#### Multi-sample differential expression across conditions
+As with bulk RNA-seq experiments, we are typically interested in searching for differential expression *bewteen conditions* and *within clusters*. In the case of our MOp data, we would be interested in how expression changes within a particular cluster across sexes. Conducting such tests involves: 
+
+1."pseudo-bulking", such that for each replicate/sample, for each defined cluster of cells, for each gene, counts for that gene are summed. For each replicate, this approach results in a single count for each gene, within each cluster such that the *total number of counts = number of clusters x number of genes*. 
+
+2. DE testing, often using statistical models that are employed with bulk RNA-seq, e.g. `DESeq2`.
+
+Note that, as with the implementation of `FindConservedMarkers()`, we can use the counts back-calculated from the SCTransformed data, rather than the raw, unnormalized counts.
+
+
+``` r
+pseudobulk_counts <- AggregateExpression(downsamp_mop_merged, return.seurat = T,
+                                           assays = "SCT",
+                                           slot = "counts",
+                                           group.by = c("seurat_clusters","sex_replicate"))
+```
+
+Prior to DE testing, we need to add a *sex* variable back into the `pseudobulk_counts`, as all that exists is `sex_replicate`.
+
+
+``` r
+sex <- mutate(as_tibble(pseudobulk_counts@meta.data),sex = str_remove(sex_replicate, "-.*")) %>% select(sex)
+pseudobulk_counts$sex <- sex$sex
+```
+
+Now, we can do DE testing for cluster 0. In doing so, there are a few things worth noting:
+
+* Seurat's `AggregateExpression` function puts a "g" before the cluster labels, so this has to be added when subsetting the data
+* the Seurat default is to have a minimum number of replicates set to 3, and will throw an error if there are fewer replicates, as with the case for our two male samples
+* There are methodological performance issues with so few replicates, but for the purpose of demonstration, we can still use the `DESeq2` model, by setting `min.cells.group = 2`. The argument is somewhat confusing, as in the context of finding marker genes for cell clusters, it normally specifies the minimum number of cells but what in means in this context is the minimum number of pseudo-bulked samples per group.
+* the default assay is *SCT* so we are using the SCT-converted counts for testing as when we find conserved markers (above)
+
+To do DE testing within a cluster, we can subset the data, and then run `FindMarkers`, doing so in a way that contrasts the specified conditions:
+
+
+``` r
+cluster0_pseudobulk <- subset(pseudobulk_counts, seurat_clusters == "g0")
+  Idents(cluster0_pseudobulk) <- "sex"
+cluster0_de_markers <- FindMarkers(cluster0_pseudobulk, ident.1 = "male", ident.2 = "female", slot = "counts", test.use = "DESeq2", min.cells.group = 2, verbose = F)
+head(cluster0_de_markers)
+```
+
+```
+##                p_val avg_log2FC pct.1 pct.2    p_val_adj
+## Xist    5.963204e-23 -3.7791286     0     1 1.320671e-18
+## Ddx3y   4.903587e-20  1.7582176     1     0 1.085997e-15
+## Eif2s3y 1.048313e-19  1.7232314     1     0 2.321698e-15
+## Uty     1.582826e-19  1.6801653     1     0 3.505485e-15
+## Tsix    1.335422e-18 -0.1006898     1     1 2.957559e-14
+## Kdm5d   9.216037e-16  1.2006631     1     0 2.041076e-11
+```
+
+And then we can make a nice volcano plot!
+
+
+``` r
+library(ggrepel)
+cluster0_de_markers$gene <- rownames(cluster0_de_markers)
+volcano_plot<- ggplot(cluster0_de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size = 0.5, alpha = 0.5) + theme_bw() +
+      ylab("-log10(unadjusted p-value)") + geom_text_repel(aes(label = ifelse(p_val_adj < 0.01, gene,
+      "")), colour = "red", size = 3)
+volcano_plot
+```
+
+![](SinglecellRNAseq_part2_files/figure-html/unnamed-chunk-37-1.png)<!-- -->
+
+**An alternative code implementation which doesn't require subsetting for additional cluster tests** is to:
+
+* create a composite variable for cluster+sex
+* set that variable with `Idents`, then
+* use the composite variable for specifying the groups for which to test for DE
+
+One would do this as follows:
+
+
+``` r
+pseudobulk_counts$cluster.sex <- paste(pseudobulk_counts$seurat_clusters, pseudobulk_counts$sex, sep = "_")
+Idents(pseudobulk_counts) <- pseudobulk_counts$cluster.sex
+cluster0_de_markers_alt <- FindMarkers(pseudobulk_counts, ident.1 = "g0_male", ident.2 = "g0_female", slot = "counts", test.use = "DESeq2", min.cells.group = 2, verbose = F)
+head(cluster0_de_markers_alt)
+```
+
+```
+##                p_val avg_log2FC pct.1 pct.2    p_val_adj
+## Xist    5.963204e-23 -3.7791286     0     1 1.320671e-18
+## Ddx3y   4.903587e-20  1.7582176     1     0 1.085997e-15
+## Eif2s3y 1.048313e-19  1.7232314     1     0 2.321698e-15
+## Uty     1.582826e-19  1.6801653     1     0 3.505485e-15
+## Tsix    1.335422e-18 -0.1006898     1     1 2.957559e-14
+## Kdm5d   9.216037e-16  1.2006631     1     0 2.041076e-11
+```
+
+
+### Summary
+* Marker gene discovery enables you to identify genes that are significantly up-regulated or down-regulated relative to other cells, and are useful for manual annotation
+* Automated annotation using tools such as `SingleR` requires that an appropriate reference database be available
+* An important step in scRNA-seq analysis in which libraries have sequenced for different experimental conditions is to determine whether expression matrices derived from those libraries contain batch effects
+  * batch effects can be examined with UMAP plots and calculation of the LISI index
+  * in the absence of batch effects, matrices can be merge
+  * in the presence of batch effects a formal integration method should be used
+  * integration does not always remove batch effects
+* With merged or integrated data sets spanning multiple experimental conditions, one can identify marker genes for clusters that are conserved across the experimental conditions investigated
+* Downstream differential expression analysis on > 1 experimental condition for each of which there are at least 2 (but ideally more) biological replicates can be performed using a pseudobulking approach, and can identify DE across conditions within defined cell clusters
+* At the study design phase, researchers should carefully consider:
+  * the resources available for cell type annotation
+  * whether samples being sequences will include batch effects, and whether the biological differences inherent it proposed groups/conditions to compare will make integration necessary but also potentially problematic
+  * the feasibility of obtaining biological replicates for robust DE analysis
+
+
+
