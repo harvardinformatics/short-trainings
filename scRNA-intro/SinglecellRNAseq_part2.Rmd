@@ -189,6 +189,7 @@ table(pbmc_filtered_seurat$SingleR.labels)
 ```
 
 The labels can now be accessed via: 
+
 * `pbmc_filtered_seurat$SingleR.labels` or
 * `pbmc_filtered_seurat@meta.data$SingleR.labels`
 
@@ -558,7 +559,7 @@ integrated_obj[[lisi_col_name]] <- as.numeric(lisi_scores)
 message(paste("LISI scores added to metadata column:", lisi_col_name))
 message(paste("Mean LISI score for intgrated data is",mean(integrated_obj@meta.data$tissue_LISI)))
 ```
-Indeed, as the UMAP suggested, batch effect correction was not all that successful. **If we were confident that integration had sufficiently corrected the batch effects, and if we had multiple replicates per biological condition, we could proceed with differential expression testing. (Note that, in principal, one might want to calculate LISI on both your merged, un-integrated data and your integrated data to compare scores, or across multiple different integration methods to see which does the best job of removing batch effects) 
+Indeed, as the UMAP suggested, batch effect correction was not all that successful. **If we were confident that integration had sufficiently corrected the batch effects, and if we had multiple replicates per biological condition, we could proceed with differential expression testing.** Note that, in principal, one might want to calculate LISI on both your merged, un-integrated data and your integrated data to compare scores, or across multiple different integration methods to see which does the best job of removing batch effects.
 
 The poor outcome of integration of the MOp and CNU-PAL samples leads to the following questions: 
 
