@@ -51,7 +51,7 @@ publicly available human PBMC data set as an example, we:
 
 <p align="center">
 
-<img src="img/deworkflow.png" width="50%" height="50%"/>
+  <img src="img/deworkflow.png" width="50%" height="50%" alt="A decision tree in the form of a flowchart describing options for analysis of Seurat objects depending on whether you have batch effects, reference databases, or biological replicates." >
 
 </p>
 

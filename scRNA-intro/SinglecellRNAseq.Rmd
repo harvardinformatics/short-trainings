@@ -32,7 +32,7 @@ A standard scRNAseq workflow involves several data cleaning steps, that then ena
 
 <p align="center">
 
-<img src="img/heumos_overview.png" width="50%" height="50%"/>
+  <img src="../img/heumos_overview.png" width="50%" height="50%" alt="A two column figure with sub-images from Huemos et al 2023. A column labeled 'Data Processing' with images describing the steps count matrix, quality contrl, normalization, feature selection, integration, and dimensionality reduction. A column labeled 'Biology', with images describing how to identify cellular structure with clustering, reference mapping and trajectory inference, and images describing how to reveal mechanisms with differential expression, gene set enrichment, cell-type composition, perturbation modeling, cell-cell commmunication, and geen regulatory networks.">
 
 </p>
 Adapted from [Heumos et al. 2023, *Nature Biotechnology"](https://www.nature.com/articles/s41576-023-00586-w)
@@ -48,7 +48,7 @@ While these examples highlight the potential value of scRNAseq in biomedical res
 
 <p align="center">
 
-<img src="img/scrnaseq_vs_bulk_de.png" width="75%" height="75%"/>
+  <img src="../img/scrnaseq_vs_bulk_de.png" width="75%" height="75%" alt="An image with columns and rows describing the difference between single cell and bulk RNA sequencing. Columns are condition 1, condition 2, pattern, and bulk inference. Each condition has cell type 1 and cell type 2, which are represented by red and blue shapes, red indicating high expression and blue indicating low expression.">
 
 </p>
 
@@ -58,9 +58,10 @@ The 10x Genomics 3'assay has become an industry standard, using a gel-droplet te
 
 <p align="center">
 
-<img src="img/10x3prime_schema.png" width="75%" height="75%"/>
+  <img src="../img/10x3prime_schema.png" width="50%" alt="Barcoded beads are processed with enzymes and oil and collected. The layout of the reads is shown from left to right as P5, Sample Index, TruSeq Read 1, 10X barcode, Unique Molecular Identifier (UMI), Poly(dt)VN, Insert, TruSeq Read 2, Sample Indext, and P7. Figure adapted from 10x 3 prime library construction user guide.">
 
 </p>
+
 Adapted from ["10x 3' library construction user guide"](https://cdn.10xgenomics.com/image/upload/v1710230393/support-documents/CG000731_ChromiumGEM-X_SingleCell3_ReagentKits_v4_UserGuide_RevA.pdf)
 
 Because the cDNA sequence readout is only from the 3' end, a workflow based upon this technology is only able to produce expression estimates (per cell) at the gene-level. In other words, there is not enough unique sequence to enable alignment of a particular sequencing fragment to a particular alternatively spliced isoform.
@@ -76,7 +77,7 @@ Despite major advances in scRNA-seq library preparation and sequencing, there re
 
 <p align="center">
 
-<img src="img/cell_quality_figure.png" width="40%" height="40%"/>
+  <img src="../img/cell_quality_figure.png" width="40%" height="40%" alt="6 circles showing different artefacts from scRNA sequencing resulting from the inclusion of mitochondrial DNA, ambient RNA, degraded cells, intact off-target cells, or an empty droplet.">
 
 </p>
 
@@ -109,7 +110,7 @@ Typical metrics reported as part of *cellranger count* or other instrument-relat
 
 <p align="center">
 
-<img src="img/kneeplot.png" width="50%" height="50%"/>
+  <img src="../img/kneeplot.png" width="50%" height="50%" alt="A line graph titled Barcode Rank Plot. The x-axis is labeled 'Barcodes' and ranging from 1 to 1 million on a logarithmic scale. The y-axis is labled UMI counts and ranges from 1 to 100,000 also on a logarithmic scale. A black line representing cells starts at 1 barcode on the x-axis and 100,000 UMIs on the y-axis. As the number of barcodes increases, the number of UMIs slowly decreases until about 10,000 barcodes, at which point there is a sharp drop in UMIs. The line turns grey, indicating these are now "Background" and the sharp drop continues.">
 
 </p>
 
@@ -126,7 +127,7 @@ We will walk through the workflow represented by the diagram below that takes 10
 
 <p align="center">
 
-<img src="img/workflow.png" width="80%" height="80%"/>
+  <img src="../img/workflow.png" width="80%" height="80%" alt="A flowchart with shapes and arrows indicating the following steps: Starting from Cell Ranger a raw matrix and cell matrix are input to SoupX form ambient RNA removal. Then doublet removal is performed with scDblFinder. Finally, filtering for % mitochondrial DNA, # UMIs and # genes is done before the data is passed to the downstream analyses, like clustering, marker gene discovery, or differential expression.">
 
 </p>
 

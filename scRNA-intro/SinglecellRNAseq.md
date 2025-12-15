@@ -1,6 +1,6 @@
 ---
 title: "Harvard Informatics scRNA-seq workshop"
-authors:
+authors: 
   - Adam Freedman
   - Tim Sackton
 date: "Fall, 2025"
@@ -32,7 +32,7 @@ A standard scRNAseq workflow involves several data cleaning steps, that then ena
 
 <p align="center">
 
-<img src="img/heumos_overview.png" width="50%" height="50%"/>
+  <img src="../img/heumos_overview.png" width="50%" height="50%" alt="A two column figure with sub-images from Huemos et al 2023. A column labeled 'Data Processing' with images describing the steps count matrix, quality contrl, normalization, feature selection, integration, and dimensionality reduction. A column labeled 'Biology', with images describing how to identify cellular structure with clustering, reference mapping and trajectory inference, and images describing how to reveal mechanisms with differential expression, gene set enrichment, cell-type composition, perturbation modeling, cell-cell commmunication, and geen regulatory networks.">
 
 </p>
 Adapted from [Heumos et al. 2023, *Nature Biotechnology"](https://www.nature.com/articles/s41576-023-00586-w)
@@ -48,7 +48,7 @@ While these examples highlight the potential value of scRNAseq in biomedical res
 
 <p align="center">
 
-<img src="img/scrnaseq_vs_bulk_de.png" width="75%" height="75%"/>
+  <img src="../img/scrnaseq_vs_bulk_de.png" width="75%" height="75%" alt="An image with columns and rows describing the difference between single cell and bulk RNA sequencing. Columns are condition 1, condition 2, pattern, and bulk inference. Each condition has cell type 1 and cell type 2, which are represented by red and blue shapes, red indicating high expression and blue indicating low expression.">
 
 </p>
 
@@ -58,7 +58,7 @@ The 10x Genomics 3'assay has become an industry standard, using a gel-droplet te
 
 <p align="center">
 
-<img src="img/10x3prime_schema.png" width="75%" height="75%"/>
+  <img src="../img/10x3prime_schema.png" width="50%" alt="Barcoded beads are processed with enzymes and oil and collected. The layout of the reads is shown from left to right as P5, Sample Index, TruSeq Read 1, 10X barcode, Unique Molecular Identifier (UMI), Poly(dt)VN, Insert, TruSeq Read 2, Sample Indext, and P7. Figure adapted from 10x 3 prime library construction user guide.">
 
 </p>
 Adapted from ["10x 3' library construction user guide"](https://cdn.10xgenomics.com/image/upload/v1710230393/support-documents/CG000731_ChromiumGEM-X_SingleCell3_ReagentKits_v4_UserGuide_RevA.pdf)
@@ -76,7 +76,7 @@ Despite major advances in scRNA-seq library preparation and sequencing, there re
 
 <p align="center">
 
-<img src="img/cell_quality_figure.png" width="40%" height="40%"/>
+  <img src="../img/cell_quality_figure.png" width="40%" height="40%" alt="6 circles showing different artefacts from scRNA sequencing resulting from the inclusion of mitochondrial DNA, ambient RNA, degraded cells, intact off-target cells, or an empty droplet.">
 
 </p>
 
@@ -109,7 +109,7 @@ Typical metrics reported as part of *cellranger count* or other instrument-relat
 
 <p align="center">
 
-<img src="img/kneeplot.png" width="50%" height="50%"/>
+  <img src="../img/kneeplot.png" width="50%" height="50%" alt="A line graph titled Barcode Rank Plot. The x-axis is labeled 'Barcodes' and ranging from 1 to 1 million on a logarithmic scale. The y-axis is labled UMI counts and ranges from 1 to 100,000 also on a logarithmic scale. A black line representing cells starts at 1 barcode on the x-axis and 100,000 UMIs on the y-axis. As the number of barcodes increases, the number of UMIs slowly decreases until about 10,000 barcodes, at which point there is a sharp drop in UMIs. The line turns grey, indicating these are now "Background" and the sharp drop continues.">
 
 </p>
 
@@ -126,7 +126,7 @@ We will walk through the workflow represented by the diagram below that takes 10
 
 <p align="center">
 
-<img src="img/workflow.png" width="80%" height="80%"/>
+  <img src="../img/workflow.png" width="80%" height="80%" alt="A flowchart with shapes and arrows indicating the following steps: Starting from Cell Ranger a raw matrix and cell matrix are input to SoupX form ambient RNA removal. Then doublet removal is performed with scDblFinder. Finally, filtering for % mitochondrial DNA, # UMIs and # genes is done before the data is passed to the downstream analyses, like clustering, marker gene discovery, or differential expression.">
 
 </p>
 
@@ -200,19 +200,19 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 ```
 
 ```
-## 13:12:37 UMAP embedding parameters a = 0.9922 b = 1.112
+## 12:09:02 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 13:12:37 Read 4340 rows and found 30 numeric columns
+## 12:09:02 Read 4340 rows and found 30 numeric columns
 ```
 
 ```
-## 13:12:37 Using Annoy for neighbor search, n_neighbors = 30
+## 12:09:02 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 13:12:37 Building Annoy index with metric = cosine, n_trees = 50
+## 12:09:02 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -225,14 +225,14 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:30)
 
 ```
 ## **************************************************|
-## 13:12:37 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb37fc29078
-## 13:12:37 Searching Annoy index using 1 thread, search_k = 3000
-## 13:12:37 Annoy recall = 100%
-## 13:12:38 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 13:12:39 Initializing from normalized Laplacian + noise (using RSpectra)
-## 13:12:39 Commencing optimization for 500 epochs, with 182084 positive edges
-## 13:12:39 Using rng type: pcg
-## 13:12:41 Optimization finished
+## 12:09:02 Writing NN index file to temp file C:\Users\Gregg\AppData\Local\Temp\RtmpYT3Pag\file6b2c2a105a26
+## 12:09:02 Searching Annoy index using 1 thread, search_k = 3000
+## 12:09:03 Annoy recall = 100%
+## 12:09:04 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 12:09:06 Initializing from normalized Laplacian + noise (using RSpectra)
+## 12:09:06 Commencing optimization for 500 epochs, with 181974 positive edges
+## 12:09:06 Using rng type: pcg
+## 12:09:17 Optimization finished
 ```
 
 ``` r
@@ -252,11 +252,11 @@ seurat_obj <- FindClusters(seurat_obj)
 ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 ## 
 ## Number of nodes: 4340
-## Number of edges: 156541
+## Number of edges: 156353
 ## 
 ## Running Louvain algorithm...
-## Maximum modularity in 10 random starts: 0.8698
-## Number of communities: 15
+## Maximum modularity in 10 random starts: 0.8702
+## Number of communities: 14
 ## Elapsed time: 0 seconds
 ```
 #### make UMAP plot of data without ambient RNA decontamination
@@ -286,16 +286,16 @@ head(seurat_obj@meta.data)
 ##                       orig.ident nCount_RNA nFeature_RNA percent.mt nCount_SCT
 ## AAACCTGAGAAGGCCT-1 SeuratProject       1738          748   6.386651       3461
 ## AAACCTGAGACAGACC-1 SeuratProject       3240         1052   5.462963       3627
-## AAACCTGAGATAGTCA-1 SeuratProject       1683          739   7.367796       3451
+## AAACCTGAGATAGTCA-1 SeuratProject       1683          739   7.367796       3452
 ## AAACCTGAGCGCCTCA-1 SeuratProject       2319          875   3.837861       3442
 ## AAACCTGAGGCATGGT-1 SeuratProject       2983          951   2.246061       3587
 ## AAACCTGCAAGGTTCT-1 SeuratProject       4181         1248   2.224348       3967
 ##                    nFeature_SCT SCT_snn_res.0.8 seurat_clusters
-## AAACCTGAGAAGGCCT-1          758              13              13
-## AAACCTGAGACAGACC-1         1040               0               0
-## AAACCTGAGATAGTCA-1          767               0               0
+## AAACCTGAGAAGGCCT-1          758               6               6
+## AAACCTGAGACAGACC-1         1040               1               1
+## AAACCTGAGATAGTCA-1          767               1               1
 ## AAACCTGAGCGCCTCA-1          862               2               2
-## AAACCTGAGGCATGGT-1          939               1               1
+## AAACCTGAGGCATGGT-1          939               0               0
 ## AAACCTGCAAGGTTCT-1         1232               3               3
 ```
 
@@ -323,11 +323,11 @@ soup_channel <- autoEstCont(soup_channel)
 ```
 
 ```
-## 822 genes passed tf-idf cut-off and 428 soup quantile filter.  Taking the top 100.
+## 839 genes passed tf-idf cut-off and 444 soup quantile filter.  Taking the top 100.
 ```
 
 ```
-## Using 998 independent estimates of rho.
+## Using 903 independent estimates of rho.
 ```
 
 ```
@@ -346,7 +346,7 @@ corrected_counts <- adjustCounts(soup_channel,roundToInt=TRUE)
 ```
 
 ```
-## Expanding counts from 15 clusters to 4340 cells.
+## Expanding counts from 14 clusters to 4340 cells.
 ```
 
 ``` r
@@ -395,23 +395,23 @@ sce_obj_filt <- scDblFinder(sce_obj_filt)
 ```
 
 ```
-## iter=0, 544 cells excluded from training.
+## iter=0, 576 cells excluded from training.
 ```
 
 ```
-## iter=1, 547 cells excluded from training.
+## iter=1, 576 cells excluded from training.
 ```
 
 ```
-## iter=2, 528 cells excluded from training.
+## iter=2, 576 cells excluded from training.
 ```
 
 ```
-## Threshold found:0.433
+## Threshold found:0.316
 ```
 
 ```
-## 221 (5.1%) doublets called
+## 239 (5.5%) doublets called
 ```
 
 The doublet classification information is now stored in `scDblFinder.class` in the SCE object.
@@ -425,28 +425,28 @@ head(colData(sce_obj_filt))
 ## DataFrame with 6 rows and 9 columns
 ##                       orig.ident nCount_RNA nFeature_RNA percent.mt
 ##                         <factor>  <numeric>    <integer>  <numeric>
-## AAACCTGAGAAGGCCT-1 SeuratProject       1653          732    6.53358
-## AAACCTGAGACAGACC-1 SeuratProject       3062         1004    5.55193
-## AAACCTGAGATAGTCA-1 SeuratProject       1609          721    7.39590
-## AAACCTGAGCGCCTCA-1 SeuratProject       2189          837    3.88305
-## AAACCTGAGGCATGGT-1 SeuratProject       2821          902    2.19780
-## AAACCTGCAAGGTTCT-1 SeuratProject       3930         1168    2.18830
+## AAACCTGAGAAGGCCT-1 SeuratProject       1664          734    6.49038
+## AAACCTGAGACAGACC-1 SeuratProject       3054         1003    5.50098
+## AAACCTGAGATAGTCA-1 SeuratProject       1615          715    7.61610
+## AAACCTGAGCGCCTCA-1 SeuratProject       2195          834    3.96355
+## AAACCTGAGGCATGGT-1 SeuratProject       2831          905    2.19004
+## AAACCTGCAAGGTTCT-1 SeuratProject       3954         1181    2.17501
 ##                            ident scDblFinder.class scDblFinder.score
 ##                         <factor>          <factor>         <numeric>
-## AAACCTGAGAAGGCCT-1 SeuratProject           singlet       0.000338863
-## AAACCTGAGACAGACC-1 SeuratProject           singlet       0.001126437
-## AAACCTGAGATAGTCA-1 SeuratProject           singlet       0.000406255
-## AAACCTGAGCGCCTCA-1 SeuratProject           singlet       0.021840787
-## AAACCTGAGGCATGGT-1 SeuratProject           singlet       0.000286932
-## AAACCTGCAAGGTTCT-1 SeuratProject           singlet       0.011666683
+## AAACCTGAGAAGGCCT-1 SeuratProject           singlet       0.055839857
+## AAACCTGAGACAGACC-1 SeuratProject           singlet       0.117231489
+## AAACCTGAGATAGTCA-1 SeuratProject           singlet       0.000390145
+## AAACCTGAGCGCCTCA-1 SeuratProject           singlet       0.145549498
+## AAACCTGAGGCATGGT-1 SeuratProject           singlet       0.103568272
+## AAACCTGCAAGGTTCT-1 SeuratProject           singlet       0.217184826
 ##                    scDblFinder.weighted scDblFinder.cxds_score
 ##                               <numeric>              <numeric>
-## AAACCTGAGAAGGCCT-1            0.1089213            0.038705186
-## AAACCTGAGACAGACC-1            0.1576065            0.088725122
-## AAACCTGAGATAGTCA-1            0.0000000            0.000629113
-## AAACCTGAGCGCCTCA-1            0.3870337            0.019500514
-## AAACCTGAGGCATGGT-1            0.0793885            0.026678087
-## AAACCTGCAAGGTTCT-1            0.4515635            0.025072564
+## AAACCTGAGAAGGCCT-1            0.0504597             0.04784993
+## AAACCTGAGACAGACC-1            0.1412696             0.10680340
+## AAACCTGAGATAGTCA-1            0.0000000             0.00078029
+## AAACCTGAGCGCCTCA-1            0.2651230             0.01450325
+## AAACCTGAGGCATGGT-1            0.1812922             0.03692378
+## AAACCTGCAAGGTTCT-1            0.3660117             0.05139093
 ```
 Three types of information are provided on droplets: 
 
@@ -472,7 +472,7 @@ cat(paste("The number of cells after doublet removal: ",dim(seurat_obj_filt_sing
 ```
 
 ```
-## The number of cells after doublet removal:  4119
+## The number of cells after doublet removal:  4101
 ```
 
 ### post hoc filtering 
@@ -613,19 +613,19 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 ```
 
 ```
-## 13:13:10 UMAP embedding parameters a = 0.9922 b = 1.112
+## 12:10:51 UMAP embedding parameters a = 0.9922 b = 1.112
 ```
 
 ```
-## 13:13:10 Read 3612 rows and found 30 numeric columns
+## 12:10:51 Read 3592 rows and found 30 numeric columns
 ```
 
 ```
-## 13:13:10 Using Annoy for neighbor search, n_neighbors = 30
+## 12:10:51 Using Annoy for neighbor search, n_neighbors = 30
 ```
 
 ```
-## 13:13:10 Building Annoy index with metric = cosine, n_trees = 50
+## 12:10:51 Building Annoy index with metric = cosine, n_trees = 50
 ```
 
 ```
@@ -638,14 +638,14 @@ seurat_obj_filt_singlets_posthocfilt <- RunUMAP(seurat_obj_filt_singlets_posthoc
 
 ```
 ## **************************************************|
-## 13:13:11 Writing NN index file to temp file /var/folders/y4/5qbzd1h11vdb2lww93vpl_pc0000gq/T//RtmpcYlTwp/file10bb33c811450
-## 13:13:11 Searching Annoy index using 1 thread, search_k = 3000
-## 13:13:11 Annoy recall = 100%
-## 13:13:11 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
-## 13:13:12 Initializing from normalized Laplacian + noise (using RSpectra)
-## 13:13:12 Commencing optimization for 500 epochs, with 147830 positive edges
-## 13:13:12 Using rng type: pcg
-## 13:13:15 Optimization finished
+## 12:10:51 Writing NN index file to temp file C:\Users\Gregg\AppData\Local\Temp\RtmpYT3Pag\file6b2c61783580
+## 12:10:51 Searching Annoy index using 1 thread, search_k = 3000
+## 12:10:52 Annoy recall = 100%
+## 12:10:53 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+## 12:10:55 Initializing from normalized Laplacian + noise (using RSpectra)
+## 12:10:55 Commencing optimization for 500 epochs, with 146734 positive edges
+## 12:10:55 Using rng type: pcg
+## 12:11:06 Optimization finished
 ```
 
 ``` r
@@ -664,12 +664,12 @@ seurat_obj_filt_singlets_posthocfilt <- FindClusters(seurat_obj_filt_singlets_po
 ```
 ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
 ## 
-## Number of nodes: 3612
-## Number of edges: 126825
+## Number of nodes: 3592
+## Number of edges: 125962
 ## 
 ## Running Louvain algorithm...
-## Maximum modularity in 10 random starts: 0.8755
-## Number of communities: 16
+## Maximum modularity in 10 random starts: 0.8764
+## Number of communities: 14
 ## Elapsed time: 0 seconds
 ```
 
