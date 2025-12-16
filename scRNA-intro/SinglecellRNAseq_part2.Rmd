@@ -51,7 +51,7 @@ publicly available human PBMC data set as an example, we:
 
 <p align="center">
 
-<img src="img/deworkflow.png" width="50%" height="50%"/>
+  <img src="../img/deworkflow.png" style="height: 60% !important; width: auto !important;" alt="A decision tree/flowchart describing options for analysis of Seurat objects depending on whether you have batch effects, reference databases, or biological replicates." >
 
 </p>
 
@@ -677,5 +677,21 @@ head(cluster0_de_markers_alt)
   * whether samples being sequences will include batch effects, and whether the biological differences inherent it proposed groups/conditions to compare will make integration necessary but also potentially problematic
   * the feasibility of obtaining biological replicates for robust DE analysis
 
+---
+
+<!-- --------------------------------- -->
+<!-- Page specfic CSS -->
+<style>
+    /* ---Collapsed TOC--- */
+    /* Hide all 2nd-level navs */
+    .md-nav--secondary .md-nav__item .md-nav {
+        display: none !important;
+    }
+
+    /* Show when parent has .expanded class, which is added by js/collapse_toc.js */
+    .md-nav--secondary .md-nav__item.expanded > .md-nav {
+        display: block !important;
+    }    
+</style>
 
 
