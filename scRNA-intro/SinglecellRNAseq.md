@@ -786,3 +786,20 @@ In our subsequent scRNA-seq workshop next week, we will dive into downstream ana
 * cell type annotation
 * multi-sample integration
 * differential expression testing across samples
+
+---
+
+<!-- --------------------------------- -->
+<!-- Page specfic CSS -->
+<style>
+    /* ---Collapsed TOC--- */
+    /* Hide all 2nd-level navs */
+    .md-nav--secondary .md-nav__item .md-nav {
+        display: none !important;
+    }
+
+    /* Show when parent has .expanded class, which is added by js/collapse_toc.js */
+    .md-nav--secondary .md-nav__item.expanded > .md-nav {
+        display: block !important;
+    }    
+</style>
