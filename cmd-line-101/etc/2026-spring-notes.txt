@@ -1,0 +1,10 @@
+filesystems:
+- a bit more time talking about gui file browsers just to introduce the concept in a more familiar way.
+- mention wsl.
+- less time on specifics of cluster file systems.
+
+tips:
+- screen too confusing, have better demo set up
+- mention that login nodes aren't meant for heavy computation. long jobs on login nodes are stuff like a head snakemake process.
+- more about aliases, maybe less about env vars (PATH is the most important one)
+- distinguish between the default shell environment and a softwware environment (e.g. conda). better explain the a software environment is just modifying the default shell environment.
