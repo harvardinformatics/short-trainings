@@ -8,3 +8,6 @@ tips:
 - mention that login nodes aren't meant for heavy computation. long jobs on login nodes are stuff like a head snakemake process.
 - more about aliases, maybe less about env vars (PATH is the most important one)
 - distinguish between the default shell environment and a softwware environment (e.g. conda). better explain the a software environment is just modifying the default shell environment.
+
+integration:
+- too much, just focus on what our recommendations are, rather than throwing everything at them.
