@@ -11,3 +11,8 @@ tips:
 
 integration:
 - too much, just focus on what our recommendations are, rather than throwing everything at them.
+
+git:
+- do we need to have a conda workshop before this one?
+- pick one demo (first one)
+- simple diagram about prs
